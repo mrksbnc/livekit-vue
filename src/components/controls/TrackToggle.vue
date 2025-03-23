@@ -1,14 +1,20 @@
-<template>//</template>
+<template>
+  <button v-bind="trackToggle.buttonProps" class="track-toggle">
+    <span v-if="showIcon">
+      <TrackIcon :enabled="enabled" :source="source" />
+    </span>
+  </button>
+</template>
 
-<script setup lang="ts" generic="T extends ToggleSource">
-import type { ToggleSource } from '@livekit/components-core';
-import type { TrackToggleProps } from './track_toggle';
+<script setup lang="ts">
+import TrackIcon from '@/components/icons/TrackIcon.vue';
 import { useTrackToggle } from '@/composables';
-import { toRefs } from 'vue';
+import { computed } from 'vue';
+import type { TrackToggleProps } from './track_toggle';
 
-const props = defineProps<TrackToggleProps<T>>();
+const props = defineProps<TrackToggleProps>();
 
-const trackToggle = useTrackToggle<T>(props);
+const trackToggle = useTrackToggle(props);
 
-const {} = toRefs(trackToggle);
+const enabled = computed<boolean>(() => trackToggle.enabled.value);
 </script>

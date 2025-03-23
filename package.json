@@ -1,25 +1,26 @@
 {
-  "name": "livekit-vue",
-  "version": "0.0.0",
+  "name": "@mrksbnc/livekit-vue",
+  "version": "0.0.2",
   "type": "module",
+  "license": "MIT",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/livekit-vue.js",
+      "require": "./dist/livekit-vue.umd.cjs"
     },
     "./index.css": {
       "import": "./dist/index.css",
       "require": "./dist/index.css"
     },
     "./composables": {
-      "types": "./dist/composables.d.ts",
-      "import": "./dist/composables.mjs",
-      "require": "./dist/composables.cjs"
+      "import": "./dist/composables.js",
+      "require": "./dist/composables.umd.cjs"
     }
   },
-  "main": "dist/index.cjs",
-  "module": "dist/index.mjs",
+  "main": "dist/livekit-vue.umd.cjs",
+  "module": "dist/livekit-vue.js",
+  "types": "dist/src/index.d.ts",
   "files": [
     "dist",
     "src"
