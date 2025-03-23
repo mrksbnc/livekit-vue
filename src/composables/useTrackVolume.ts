@@ -10,7 +10,7 @@ import {
   type LocalAudioTrack,
   type RemoteAudioTrack,
 } from 'livekit-client';
-import { onBeforeMount, onWatcherCleanup, ref, watch } from 'vue';
+import { onBeforeMount, onWatcherCleanup, ref, watch, type ShallowRef } from 'vue';
 
 export type MultiBandTrackVolumeOptions = {
   bands?: number;
@@ -67,12 +67,12 @@ function normalizeFrequencies(frequencies: Float32Array): Float32Array<ArrayBuff
   });
 }
 
-function getFFTSizeValue(x: number) {
+function getFFTSizeValue(x: number): number {
   if (x < 32) return 32;
   else return pow2ceil(x);
 }
 
-function pow2ceil(v: number) {
+function pow2ceil(v: number): number {
   let p = 2;
   while ((v >>= 1)) {
     p <<= 1;
@@ -80,7 +80,7 @@ function pow2ceil(v: number) {
   return p;
 }
 
-function filterData(audioData: Float32Array, numSamples: number) {
+function filterData(audioData: Float32Array, numSamples: number): Float32Array {
   const blockSize = Math.floor(audioData.length / numSamples); // the number of samples in each subdivision
   const filteredData = new Float32Array(numSamples);
   for (let i = 0; i < numSamples; i++) {
@@ -97,7 +97,7 @@ function filterData(audioData: Float32Array, numSamples: number) {
 export function useTrackVolume(
   trackOrTrackReference?: LocalAudioTrack | RemoteAudioTrack | TrackReference,
   options: AudioAnalyserOptions = { fftSize: 32, smoothingTimeConstant: 0 },
-) {
+): ShallowRef<number> {
   const track = isTrackReference(trackOrTrackReference)
     ? <LocalAudioTrack | RemoteAudioTrack | undefined>trackOrTrackReference.publication.track
     : trackOrTrackReference;
@@ -142,7 +142,7 @@ export function useTrackVolume(
 export function useMultibandTrackVolume(
   trackOrTrackReference?: LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder,
   options: MultiBandTrackVolumeOptions = {},
-) {
+): ShallowRef<number[]> {
   const track =
     trackOrTrackReference instanceof Track
       ? trackOrTrackReference
@@ -204,7 +204,9 @@ export function useMultibandTrackVolume(
 export function useAudioWaveform(
   trackOrTrackReference?: LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder,
   options: AudioWaveformOptions = {},
-) {
+): {
+  bars: ShallowRef<number[]>;
+} {
   const track =
     trackOrTrackReference instanceof Track
       ? trackOrTrackReference

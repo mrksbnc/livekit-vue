@@ -10,6 +10,8 @@ export type UseIsEncryptedOptions = {
   room?: Room;
 };
 
+export type EncryptedObservable = Observable<boolean>;
+
 export function useIsEncrypted(
   participant?: Participant,
   options: UseIsEncryptedOptions = {},
@@ -17,12 +19,12 @@ export function useIsEncrypted(
   const p = useEnsureParticipant(participant);
   const room = useEnsureRoomContext(options.room);
 
-  const observer = ref<Observable<boolean>>(
-    encryptionStatusObservable(room.value, p.value) as unknown as Observable<boolean>,
+  const observer = ref<EncryptedObservable>(
+    encryptionStatusObservable(room.value, p.value) as unknown as EncryptedObservable,
   );
 
   const isEncrypted = useObservableState({
-    observable: observer.value as unknown as Observable<boolean>,
+    observable: observer.value as unknown as EncryptedObservable,
     startWith: p.value.isLocal
       ? (p.value as LocalParticipant).isE2EEEnabled
       : !!p.value?.isEncrypted,

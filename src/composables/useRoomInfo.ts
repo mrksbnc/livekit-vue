@@ -3,7 +3,7 @@ import { roomInfoObserver } from '@livekit/components-core';
 import { useObservable } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
 import type { Observable } from 'rxjs';
-import { toRefs } from 'vue';
+import { toRefs, type ShallowRef } from 'vue';
 import { useObservableState } from './private/useObservableState';
 
 export type UseRoomInfoOptions = {
@@ -15,7 +15,10 @@ export type RoomInfo = {
   metadata: string;
 };
 
-export function useRoomInfo(options: UseRoomInfoOptions = {}) {
+export function useRoomInfo(options: UseRoomInfoOptions = {}): {
+  name: ShallowRef<string>;
+  metadata: ShallowRef<string | undefined>;
+} {
   const room = useEnsureRoomContext(options.room);
 
   const infoObserver = useObservable(

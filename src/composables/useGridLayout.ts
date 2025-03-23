@@ -4,17 +4,21 @@ import {
   type GridLayoutDefinition,
 } from '@livekit/components-core';
 import { useElementSize } from '@vueuse/core';
-import { computed, watch, type Ref } from 'vue';
+import { computed, watch, type Ref, type ShallowRef } from 'vue';
+
+export type UseGridLayoutReturnType = {
+  layout: ShallowRef<GridLayoutDefinition | undefined>;
+  containerWidth: ShallowRef<number | undefined>;
+  containerHeight: ShallowRef<number | undefined>;
+};
 
 export function useGridLayout(
-  /** HTML element that contains the grid. */
   gridElement: Ref<HTMLDivElement>,
-  /** Count of tracks that should get layed out */
   trackCount: number,
   options: {
     gridLayouts?: GridLayoutDefinition[];
   } = {},
-) {
+): UseGridLayoutReturnType {
   const { width, height } = useElementSize(gridElement);
 
   const gridLayouts = computed<GridLayoutDefinition[]>(() => {

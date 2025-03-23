@@ -1,9 +1,13 @@
 import { trackSyncTimeObserver, type TrackReferenceOrPlaceholder } from '@livekit/components-core';
 import { useObservable } from '@vueuse/rxjs';
 import type { Observable } from 'rxjs';
+import type { ShallowRef } from 'vue';
 import { useObservableState } from './private/useObservableState';
 
-export function useTrackSyncTime(ref: TrackReferenceOrPlaceholder | undefined) {
+export function useTrackSyncTime(ref: TrackReferenceOrPlaceholder | undefined): ShallowRef<{
+  timestamp: number;
+  rtpTimestamp: number | undefined;
+}> {
   const observable = ref?.publication?.track
     ? // @ts-expect-error - Observer type mismatch
       useObservable(trackSyncTimeObserver(ref?.publication.track))
@@ -13,7 +17,7 @@ export function useTrackSyncTime(ref: TrackReferenceOrPlaceholder | undefined) {
     throw new Error('Please provide a valid observable when using `useTrackSyncTime`');
   }
 
-  return useObservableState({
+  const observedState = useObservableState({
     observable: observable?.value as unknown as Observable<{
       timestamp: number;
       rtpTimestamp: number;
@@ -23,4 +27,6 @@ export function useTrackSyncTime(ref: TrackReferenceOrPlaceholder | undefined) {
       rtpTimestamp: ref?.publication?.track?.rtpTimestamp,
     },
   });
+
+  return observedState;
 }

@@ -5,8 +5,8 @@ import {
   type ParticipantIdentifier,
 } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
-import type { ParticipantEvent, RemoteParticipant, Room } from 'livekit-client';
-import { computed, ref, type Ref } from 'vue';
+import type { Participant, ParticipantEvent, RemoteParticipant, Room } from 'livekit-client';
+import { computed, ref, type Ref, type ShallowRef } from 'vue';
 
 export type UseRemoteParticipantOptions = {
   updateOnlyOn?: ParticipantEvent[];
@@ -15,7 +15,7 @@ export type UseRemoteParticipantOptions = {
 export function useRemoteParticipant(
   identityOrIdentifier: string | ParticipantIdentifier,
   options: UseRemoteParticipantOptions = {},
-) {
+): ShallowRef<Participant | undefined> {
   const room: Ref<Room> = useEnsureRoomContext();
   const updateOnlyOn: Ref<ParticipantEvent[]> = ref(options.updateOnlyOn ?? []);
   const participant: Ref<RemoteParticipant | undefined> = ref(undefined);
@@ -38,7 +38,5 @@ export function useRemoteParticipant(
     }),
   );
 
-  return {
-    participant: participant as Ref<RemoteParticipant | undefined>,
-  };
+  return participant;
 }

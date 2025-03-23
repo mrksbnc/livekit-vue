@@ -1,5 +1,5 @@
 import { updatePages, type TrackReferenceOrPlaceholder } from '@livekit/components-core';
-import { computed, ref, watch, type Ref } from 'vue';
+import { computed, ref, watch, type ShallowRef } from 'vue';
 
 export interface UseVisualStableUpdateOptions {
   customSortFunction?: (
@@ -12,7 +12,7 @@ export function useVisualStableUpdate(
   trackReferences: TrackReferenceOrPlaceholder[],
   maxItemsOnPage: number,
   options: UseVisualStableUpdateOptions = {},
-) {
+): ShallowRef<TrackReferenceOrPlaceholder[]> {
   const lastMaxItemsOnPage = ref<number>(-1);
   const lastTrackRefs = ref<TrackReferenceOrPlaceholder[]>([]);
 
@@ -30,7 +30,7 @@ export function useVisualStableUpdate(
     ...sortedTrackReferences.value,
   ]);
 
-  function updateTrackReferences() {
+  function updateTrackReferences(): void {
     if (!isLayoutChanged.value) {
       try {
         updatedTrackReferences.value = updatePages(
@@ -53,5 +53,5 @@ export function useVisualStableUpdate(
 
   watch(() => sortedTrackReferences, updateTrackReferences);
 
-  return updatedTrackReferences as Ref<TrackReferenceOrPlaceholder[]>;
+  return updatedTrackReferences as ShallowRef<TrackReferenceOrPlaceholder[]>;
 }

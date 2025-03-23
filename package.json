@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
+    "build:prod": "vite optimize --force && vite build --mode production",
     "preview": "vite preview",
     "test:unit": "vitest",
     "build-only": "vite build",
@@ -14,6 +15,28 @@
     "lint": "run-s lint:*",
     "format": "prettier --write src/"
   },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./index.css": {
+      "import": "./dist/livekit-vue.css",
+      "require": "./dist/livekit-vue.css"
+    },
+    "./composables": {
+      "types": "./dist/composables.d.ts",
+      "import": "./dist/composables.mjs",
+      "require": "./dist/composables.js"
+    }
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "files": [
+    "dist",
+    "src"
+  ],
   "dependencies": {
     "@livekit/components-core": "^0.12.1",
     "@tailwindcss/vite": "^4.0.15",
@@ -46,6 +69,7 @@
     "prettier-plugin-tailwindcss": "^0.6.11",
     "typescript": "~5.8.0",
     "vite": "^6.2.1",
+    "vite-plugin-dts": "^4.5.3",
     "vite-plugin-vue-devtools": "^7.7.2",
     "vite-svg-loader": "^5.1.0",
     "vitest": "^3.0.8",

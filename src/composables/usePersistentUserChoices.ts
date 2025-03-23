@@ -1,13 +1,24 @@
 import { loadUserChoices, saveUserChoices, type LocalUserChoices } from '@livekit/components-core';
-import { ref, watch } from 'vue';
+import { ref, watch, type ShallowRef } from 'vue';
 
-export interface UsePersistentUserChoicesOptions {
+export type UsePersistentUserChoicesOptions = {
   defaults?: Partial<LocalUserChoices>;
   preventSave?: boolean;
   preventLoad?: boolean;
-}
+};
 
-export function usePersistentUserChoices(options: UsePersistentUserChoicesOptions = {}) {
+export type UsePersistentUserChoicesReturnType = {
+  userChoices: ShallowRef<LocalUserChoices>;
+  saveAudioInputEnabled: (enabled: boolean) => void;
+  saveVideoInputEnabled: (enabled: boolean) => void;
+  saveAudioInputDeviceId: (deviceId: string) => void;
+  saveVideoInputDeviceId: (deviceId: string) => void;
+  saveUsername: (username: string) => void;
+};
+
+export function usePersistentUserChoices(
+  options: UsePersistentUserChoicesOptions = {},
+): UsePersistentUserChoicesReturnType {
   const userChoices = ref<LocalUserChoices>(
     loadUserChoices(options.defaults, options.preventLoad ?? false),
   );

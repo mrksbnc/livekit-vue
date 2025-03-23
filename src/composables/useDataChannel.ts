@@ -5,10 +5,16 @@ import type { Observable } from 'rxjs';
 import { computed, toRefs, type ShallowRef } from 'vue';
 import { useObservableState } from './private/useObservableState';
 
+export type MessagePayload<T extends string | undefined = undefined> = {
+  payload: Uint8Array;
+  topic: T;
+  from: RemoteParticipant | undefined;
+};
+
 export type UseDataChannelReturnType<T extends string | undefined = undefined> = {
   isSending: ShallowRef<boolean>;
   send: ShallowRef<(payload: Uint8Array, options?: DataPublishOptions) => Promise<void>>;
-  message: ShallowRef<ReceivedDataMessage<T> | undefined>;
+  message: ShallowRef<MessagePayload<T> | undefined>;
 };
 
 export function useDataChannel<T extends string>(
@@ -21,7 +27,7 @@ export function useDataChannel(
 export function useDataChannel<T extends string>(
   topicOrCallback?: T | ((msg: ReceivedDataMessage) => void),
   callback?: (msg: ReceivedDataMessage<T>) => void,
-) {
+): UseDataChannelReturnType {
   const onMessage = typeof topicOrCallback === 'function' ? topicOrCallback : callback;
   const topic = typeof topicOrCallback === 'string' ? topicOrCallback : undefined;
   const room = useEnsureRoomContext();
@@ -33,11 +39,7 @@ export function useDataChannel<T extends string>(
   const { send, messageObservable, isSendingObservable } = toRefs(messageHandler.value);
 
   const message = useObservableState({
-    observable: messageObservable as unknown as Observable<{
-      payload: Uint8Array;
-      topic: T;
-      from: RemoteParticipant | undefined;
-    }>,
+    observable: messageObservable as unknown as Observable<MessagePayload>,
     startWith: undefined,
   });
 

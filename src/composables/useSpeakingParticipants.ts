@@ -3,9 +3,10 @@ import { activeSpeakerObserver } from '@livekit/components-core';
 import { useObservable } from '@vueuse/rxjs';
 import type { Participant } from 'livekit-client';
 import type { Observable } from 'rxjs';
+import type { ShallowRef } from 'vue';
 import { useObservableState } from './private/useObservableState';
 
-export function useSpeakingParticipants() {
+export function useSpeakingParticipants(): ShallowRef<Participant[]> {
   const room = useEnsureRoomContext();
 
   const speakerObserver = useObservable(

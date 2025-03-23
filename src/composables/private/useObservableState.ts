@@ -19,7 +19,7 @@ export function useObservableState<T>(options: UseObservableStateArgs<T>): Shall
     return options.resetWhenObservableChanges ?? false;
   });
 
-  watch([observable, resetWhenObservableChanges], () => {
+  function update() {
     if (resetWhenObservableChanges.value) {
       state.value = options.startWith;
     }
@@ -35,7 +35,10 @@ export function useObservableState<T>(options: UseObservableStateArgs<T>): Shall
         }),
       );
     }
-  });
+  }
+
+  watch(observable, update);
+  watch(state, update);
 
   return state;
 }

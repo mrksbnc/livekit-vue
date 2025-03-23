@@ -6,9 +6,11 @@ import {
 } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import { Track, TrackPublication } from 'livekit-client';
-import { computed, ref, toRefs } from 'vue';
+import { computed, ref, toRefs, type ShallowRef } from 'vue';
 
-export function useTrackRefBySourceOrName(source: TrackSource<Track.Source>) {
+export function useTrackRefBySourceOrName(
+  source: TrackSource<Track.Source>,
+): ShallowRef<TrackReferenceOrPlaceholder> {
   const publication = ref<TrackPublication | undefined>(getTrackByIdentifier(source));
 
   const mediaTrackSetupResult = computed<ReturnType<typeof setupMediaTrack>>(() =>
@@ -23,9 +25,15 @@ export function useTrackRefBySourceOrName(source: TrackSource<Track.Source>) {
     }),
   );
 
-  return ref({
-    participant: source.participant,
-    source: source.source ?? Track.Source.Unknown,
-    publication: publication.value as TrackPublication,
-  } as TrackReferenceOrPlaceholder);
+  const trackReference = computed<TrackReferenceOrPlaceholder>(() => {
+    const track: TrackReferenceOrPlaceholder = {
+      participant: source.participant,
+      source: source.source ?? Track.Source.Unknown,
+      publication: publication.value as TrackPublication,
+    };
+
+    return track;
+  });
+
+  return trackReference;
 }

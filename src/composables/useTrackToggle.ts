@@ -3,18 +3,19 @@ import { useMaybeRoomContext } from '@/context/room.context';
 import { setupManualToggle, setupMediaToggle, type ToggleSource } from '@livekit/components-core';
 import type { LocalTrackPublication } from 'livekit-client';
 import type { Observable } from 'rxjs';
-import { computed, onMounted, ref, toRefs, watch, type HTMLAttributes } from 'vue';
+import { computed, onMounted, ref, toRefs, watch } from 'vue';
 import { useObservableState } from './private/useObservableState';
 
-export type UseTrackToggleProps<T extends ToggleSource> = Omit<TrackToggleProps<T>, 'showIcon'> &
-  HTMLAttributes;
+export type UseTrackToggleProps<T extends ToggleSource> = Omit<TrackToggleProps<T>, 'showIcon'>;
+
+export type StateObserver = Observable<boolean>;
 
 export function useTrackToggle<T extends ToggleSource>(options: UseTrackToggleProps<T>) {
   const room = useMaybeRoomContext();
 
   const userInteractionRef = ref<boolean>(false);
 
-  const track = ref<LocalTrackPublication | undefined>(
+  const track = computed<LocalTrackPublication | undefined>(() =>
     room?.value?.localParticipant?.getTrackPublication(options.source),
   );
 
@@ -35,12 +36,12 @@ export function useTrackToggle<T extends ToggleSource>(options: UseTrackTogglePr
   );
 
   const pending = useObservableState({
-    observable: pendingObserver.value as unknown as Observable<boolean>,
+    observable: pendingObserver.value as unknown as StateObserver,
     startWith: false,
   });
 
   const enabled = useObservableState({
-    observable: enabledObserver.value as unknown as Observable<boolean>,
+    observable: enabledObserver.value as unknown as StateObserver,
     startWith: options.initialState ?? !!track.value?.isEnabled,
   });
 
@@ -80,6 +81,6 @@ export function useTrackToggle<T extends ToggleSource>(options: UseTrackTogglePr
       'data-lk-enabled': enabled.value,
       disabled: pending.value ?? false,
       onClick: onOnClick,
-    } as HTMLAttributes,
+    },
   };
 }

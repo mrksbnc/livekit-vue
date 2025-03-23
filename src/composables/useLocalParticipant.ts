@@ -2,13 +2,26 @@ import { useEnsureRoomContext } from '@/context/room.context';
 import { observeParticipantMedia, type ParticipantMedia } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import { LocalParticipant, TrackPublication, type Room } from 'livekit-client';
-import { ref, watch } from 'vue';
+import { ref, watch, type ShallowRef } from 'vue';
 
 export type UseLocalParticipantOptions = {
   room?: Room;
 };
 
-export function useLocalParticipant(options: UseLocalParticipantOptions = {}) {
+export type UseLocalParticipantReturnType = {
+  isMicrophoneEnabled: ShallowRef<boolean>;
+  isScreenShareEnabled: ShallowRef<boolean>;
+  isCameraEnabled: ShallowRef<boolean>;
+  microphoneTrack: ShallowRef<TrackPublication | undefined>;
+  cameraTrack: ShallowRef<TrackPublication | undefined>;
+  lastMicrophoneError: ShallowRef<Error | undefined>;
+  lastCameraError: ShallowRef<Error | undefined>;
+  localParticipant: ShallowRef<LocalParticipant | undefined>;
+};
+
+export function useLocalParticipant(
+  options: UseLocalParticipantOptions = {},
+): UseLocalParticipantReturnType {
   const room = useEnsureRoomContext(options.room);
 
   const localParticipant = ref<LocalParticipant | undefined>(room.value?.localParticipant);
@@ -42,10 +55,10 @@ export function useLocalParticipant(options: UseLocalParticipantOptions = {}) {
     isMicrophoneEnabled,
     isScreenShareEnabled,
     isCameraEnabled,
-    microphoneTrack,
-    cameraTrack,
+    microphoneTrack: microphoneTrack as ShallowRef<TrackPublication | undefined>,
+    cameraTrack: cameraTrack as ShallowRef<TrackPublication | undefined>,
     lastMicrophoneError,
     lastCameraError,
-    localParticipant,
+    localParticipant: localParticipant as ShallowRef<LocalParticipant | undefined>,
   };
 }

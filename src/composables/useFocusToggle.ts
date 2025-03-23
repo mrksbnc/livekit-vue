@@ -1,14 +1,19 @@
 import { useMaybeLayoutContext } from '@/context/layout.context';
 import { useEnsureTrackRef } from '@/context/track_reference.context';
 import { isTrackReferencePinned, type TrackReferenceOrPlaceholder } from '@livekit/components-core';
-import { computed, type HTMLAttributes } from 'vue';
+import { computed, type HTMLAttributes, type ShallowRef } from 'vue';
 
 export type UseFocusToggleProps = {
   trackRef?: TrackReferenceOrPlaceholder;
   props: HTMLAttributes;
 };
 
-export function useFocusToggle({ trackRef, props }: UseFocusToggleProps) {
+export type UseFocusToggleReturnType = {
+  elementProps: ShallowRef<HTMLAttributes>;
+  inFocus: ShallowRef<boolean>;
+};
+
+export function useFocusToggle({ trackRef, props }: UseFocusToggleProps): UseFocusToggleReturnType {
   const trackReference = useEnsureTrackRef(trackRef);
   const layoutContext = useMaybeLayoutContext();
 

@@ -3,7 +3,7 @@ import { setupStartAudio } from '@livekit/components-core';
 import { useObservable } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
 import type { Observable } from 'rxjs';
-import { computed, ref, toRefs, type HTMLAttributes } from 'vue';
+import { computed, ref, toRefs, type HTMLAttributes, type ShallowRef } from 'vue';
 import { useObservableState } from './private/useObservableState';
 
 export type UseStartAudioProps = {
@@ -11,7 +11,12 @@ export type UseStartAudioProps = {
   props: HTMLAttributes;
 };
 
-export function useStartAudio({ room, props }: UseStartAudioProps) {
+export type UseStartAudioReturnType = {
+  canPlayAudio: ShallowRef<boolean>;
+  elementProps: HTMLAttributes;
+};
+
+export function useStartAudio({ room, props }: UseStartAudioProps): UseStartAudioReturnType {
   const roomEnsured = useEnsureRoomContext(room);
 
   const setupStartAudioResult = computed(() => setupStartAudio());
@@ -38,6 +43,7 @@ export function useStartAudio({ room, props }: UseStartAudioProps) {
   return {
     canPlayAudio,
     elementProps: {
+      ...props,
       class: className.value,
       onClick: () => {
         handleStartAudioPlayback.value(roomEnsured.value);

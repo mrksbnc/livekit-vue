@@ -7,7 +7,8 @@ export type PinAction =
       msg: 'set_pin';
       trackReference: TrackReferenceOrPlaceholder;
     }
-  | { msg: 'clear_pin' };
+  | { msg: 'clear_pin' }
+  | { msg: 'toggle_settings' };
 
 export type PinContext = {
   state: PinState;

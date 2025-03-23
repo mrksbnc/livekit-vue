@@ -5,10 +5,13 @@ import {
 } from '@livekit/components-core';
 import { useObservable } from '@vueuse/rxjs';
 import type { Observable } from 'rxjs';
-import { computed, toRefs } from 'vue';
+import { computed, toRefs, type ShallowRef } from 'vue';
 import { useObservableState } from './private/useObservableState';
 
-export function useTrackMutedIndicator(trackRef?: TrackReferenceOrPlaceholder) {
+export function useTrackMutedIndicator(trackRef?: TrackReferenceOrPlaceholder): {
+  isMuted: ShallowRef<boolean>;
+  className: ShallowRef<string>;
+} {
   const trackReference = useEnsureTrackRef(trackRef);
 
   const mediaTrackSetupResult = computed<ReturnType<typeof setupTrackMutedIndicator>>(() =>

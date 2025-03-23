@@ -3,7 +3,7 @@ import { setupStartVideo } from '@livekit/components-core';
 import { useObservable } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
 import type { Observable } from 'rxjs';
-import { computed, ref, toRefs, type HTMLAttributes } from 'vue';
+import { computed, ref, toRefs, type HTMLAttributes, type ShallowRef } from 'vue';
 import { useObservableState } from './private/useObservableState';
 
 export type UseStartVideoProps = {
@@ -11,7 +11,12 @@ export type UseStartVideoProps = {
   props: HTMLAttributes;
 };
 
-export function useStartVideo({ room, props }: UseStartVideoProps) {
+export type UseStartVideoReturnType = {
+  canPlayVideo: ShallowRef<boolean>;
+  elementProps: HTMLAttributes;
+};
+
+export function useStartVideo({ room, props }: UseStartVideoProps): UseStartVideoReturnType {
   const roomEnsured = useEnsureRoomContext(room);
 
   const setupStartVideoResult = computed<ReturnType<typeof setupStartVideo>>(() =>
@@ -38,6 +43,7 @@ export function useStartVideo({ room, props }: UseStartVideoProps) {
   return {
     canPlayVideo: ref(canPlayVideoObj.value.canPlayVideo),
     elementProps: {
+      ...props,
       class: className.value,
       onClick: () => {
         handleStartVideoPlayback.value(roomEnsured.value);
