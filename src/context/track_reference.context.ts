@@ -2,38 +2,26 @@ import type { TrackReference, TrackReferenceOrPlaceholder } from '@livekit/compo
 import { createInjectionState } from '@vueuse/core';
 import { shallowRef, type ShallowRef } from 'vue';
 
-export type TrackReferenceContext = {
-  trackRef: ShallowRef<TrackReference | TrackReferenceOrPlaceholder>;
-};
-
-export type UseTrackReferenceArgs = {
-  reference: TrackReference | TrackReferenceOrPlaceholder;
-};
-
 const [useTrackRefContextProvider, useTrackRefContext] = createInjectionState(
-  ({ reference }: UseTrackReferenceArgs): TrackReferenceContext => {
-    const trackRef = shallowRef(reference);
+  (
+    ref: TrackReference | TrackReferenceOrPlaceholder,
+  ): Readonly<ShallowRef<TrackReferenceOrPlaceholder>> => {
+    const trackRef = shallowRef(ref);
 
-    return {
-      trackRef,
-    };
+    return trackRef;
   },
 );
 
-export function useMaybeTrackRefContext(): TrackReferenceContext | undefined {
+export function useMaybeTrackRefContext():
+  | Readonly<ShallowRef<TrackReferenceOrPlaceholder>>
+  | undefined {
   return useTrackRefContext();
 }
 
 export function useEnsureTrackRef(
   trackRef?: TrackReferenceOrPlaceholder,
 ): Readonly<ShallowRef<TrackReferenceOrPlaceholder>> {
-  const context = useTrackRefContext();
-
-  let t = context?.trackRef;
-
-  if (trackRef) {
-    t = shallowRef(trackRef);
-  }
+  const t = trackRef ? shallowRef(trackRef) : useTrackRefContext();
 
   if (!t || !t.value) {
     throw new Error('Please call `useTrackRefContextProvider` on the appropriate parent component');
