@@ -1,14 +1,14 @@
 import type { TrackToggleProps } from '@/components/controls/track_toggle';
 import { useMaybeRoomContext } from '@/context/room.context';
-import {
-  setupManualToggle,
-  setupMediaToggle,
-  type CaptureOptionsBySource,
-  type ToggleSource,
-} from '@livekit/components-core';
-import type { LocalTrackPublication } from 'livekit-client';
+import { setupManualToggle, setupMediaToggle, type ToggleSource } from '@livekit/components-core';
+import type {
+  AudioCaptureOptions,
+  LocalTrackPublication,
+  ScreenShareCaptureOptions,
+  VideoCaptureOptions,
+} from 'livekit-client';
 import type { Observable } from 'rxjs';
-import { computed, onMounted, ref, toRefs, watch, type ShallowRef } from 'vue';
+import { computed, onMounted, ref, watch, type ShallowRef } from 'vue';
 import { useObservableState } from './private/useObservableState';
 
 export type UseTrackToggleProps = Omit<TrackToggleProps, 'showIcon'>;
@@ -16,13 +16,16 @@ export type UseTrackToggleProps = Omit<TrackToggleProps, 'showIcon'>;
 export type StateObserver = Observable<boolean>;
 
 export type UseTrackToggleReturnType = {
-  toggle?: ShallowRef<
+  toggle?:
     | ((forceState?: boolean) => Promise<void>)
     | ((
         forceState?: boolean,
-        captureOptions?: CaptureOptionsBySource<ToggleSource> | undefined,
-      ) => Promise<boolean | undefined>)
-  >;
+        captureOptions?:
+          | VideoCaptureOptions
+          | AudioCaptureOptions
+          | ScreenShareCaptureOptions
+          | undefined,
+      ) => Promise<boolean | undefined>);
   enabled: ShallowRef<boolean>;
   pending: ShallowRef<boolean>;
   track: ShallowRef<LocalTrackPublication | undefined>;
@@ -56,17 +59,13 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggleRetu
       : setupManualToggle(),
   );
 
-  const { className, enabledObserver, pendingObserver, toggle } = toRefs(
-    setupMediaToggleResult.value,
-  );
-
   const pending = useObservableState({
-    observable: pendingObserver.value as unknown as StateObserver,
+    observable: setupMediaToggleResult.value.pendingObserver as unknown as StateObserver,
     startWith: false,
   });
 
   const enabled = useObservableState({
-    observable: enabledObserver.value as unknown as StateObserver,
+    observable: setupMediaToggleResult.value.enabledObserver as unknown as StateObserver,
     startWith: options.initialState ?? !!track.value?.isEnabled,
   });
 
@@ -76,7 +75,7 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggleRetu
 
     userInteractionRef.value = true;
 
-    toggle?.value().catch(() => (userInteractionRef.value = false));
+    setupMediaToggleResult.value.toggle().catch(() => (userInteractionRef.value = false));
 
     if (options.customOnClickHandler) {
       options.customOnClickHandler(evt);
@@ -91,12 +90,12 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggleRetu
   onMounted(() => {
     if (options.initialState !== undefined) {
       console.debug('forcing initial toggle state', options.source, options.initialState);
-      toggle?.value(options.initialState);
+      setupMediaToggleResult.value.toggle(options.initialState);
     }
   });
 
   return {
-    toggle,
+    toggle: setupMediaToggleResult.value.toggle,
     enabled,
     pending,
     track,
