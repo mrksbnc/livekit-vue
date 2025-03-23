@@ -1,16 +1,43 @@
 import type { TrackToggleProps } from '@/components/controls/track_toggle';
 import { useMaybeRoomContext } from '@/context/room.context';
-import { setupManualToggle, setupMediaToggle, type ToggleSource } from '@livekit/components-core';
+import {
+  setupManualToggle,
+  setupMediaToggle,
+  type CaptureOptionsBySource,
+  type ToggleSource,
+} from '@livekit/components-core';
 import type { LocalTrackPublication } from 'livekit-client';
 import type { Observable } from 'rxjs';
-import { computed, onMounted, ref, toRefs, watch } from 'vue';
+import { computed, onMounted, ref, toRefs, watch, type ShallowRef } from 'vue';
 import { useObservableState } from './private/useObservableState';
 
 export type UseTrackToggleProps<T extends ToggleSource> = Omit<TrackToggleProps<T>, 'showIcon'>;
 
 export type StateObserver = Observable<boolean>;
 
-export function useTrackToggle<T extends ToggleSource>(options: UseTrackToggleProps<T>) {
+export type UseTrackToggleReturnType<T extends ToggleSource> = {
+  toggle?: ShallowRef<
+    | ((forceState?: boolean) => Promise<void>)
+    | ((
+        forceState?: boolean,
+        captureOptions?: CaptureOptionsBySource<T> | undefined,
+      ) => Promise<boolean | undefined>)
+  >;
+  enabled: ShallowRef<boolean>;
+  pending: ShallowRef<boolean>;
+  track: ShallowRef<LocalTrackPublication | undefined>;
+  buttonProps: {
+    'aria-pressed': boolean;
+    'data-lk-source': T;
+    'data-lk-enabled': boolean;
+    disabled: boolean;
+    onClick: (evt: MouseEvent) => void;
+  };
+};
+
+export function useTrackToggle<T extends ToggleSource>(
+  options: UseTrackToggleProps<T>,
+): UseTrackToggleReturnType<T> {
   const room = useMaybeRoomContext();
 
   const userInteractionRef = ref<boolean>(false);

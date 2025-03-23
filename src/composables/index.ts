@@ -73,7 +73,12 @@ export {
   type UseTracksOptions,
 } from './useTracks';
 export { useTrackSyncTime } from './useTrackSyncTime';
-export { useTrackToggle, type StateObserver, type UseTrackToggleProps } from './useTrackToggle';
+export {
+  useTrackToggle,
+  type StateObserver,
+  type UseTrackToggleProps,
+  type UseTrackToggleReturnType,
+} from './useTrackToggle';
 export {
   useAudioWaveform,
   useMultibandTrackVolume,

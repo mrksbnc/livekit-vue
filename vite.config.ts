@@ -25,10 +25,12 @@ export default defineConfig({
     sourcemap: true,
     minify: 'esbuild',
     emptyOutDir: true,
-    target: 'modules',
+    assetsDir: './src/assets',
     lib: {
+      cssFileName: 'index',
       entry: {
         index: resolve(__dirname, 'src/index.ts'),
+        components: resolve(__dirname, 'src/components/index.ts'),
         composables: resolve(__dirname, 'src/composables/index.ts'),
       },
     },
@@ -37,7 +39,7 @@ export default defineConfig({
       output: [
         {
           format: 'es',
-          entryFileNames: '[name].mjs', // Use .mjs for ESM
+          entryFileNames: '[name].mjs',
           chunkFileNames: '[name]-[hash].mjs',
           manualChunks: {
             contexts: ['src/context/index.ts'],
@@ -47,14 +49,13 @@ export default defineConfig({
         },
         {
           format: 'cjs',
-          entryFileNames: '[name].js', // Use .js for CJS
-          chunkFileNames: 'shared-[hash].js',
+          entryFileNames: '[name].cjs',
+          chunkFileNames: 'shared-[hash].cjs',
           dir: 'dist',
         },
       ],
     },
   },
-
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
