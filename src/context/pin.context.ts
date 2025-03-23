@@ -9,8 +9,8 @@ export type PinAction =
     }
   | { msg: 'clear_pin' };
 
-export type PinContextType = {
-  state?: PinState;
+export type PinContext = {
+  state: PinState;
   dispatch?: (action: PinAction) => void;
 };
 
@@ -38,3 +38,12 @@ const [useProvidePinContext, usePinContext] = createInjectionState((initialValue
 });
 
 export { usePinContext, useProvidePinContext };
+
+export const useEnsurePinContext = (pinContext?: PinState) => {
+  const pc = pinContext ? shallowRef(pinContext) : usePinContext();
+
+  if (!pc) {
+    throw Error('Tried to access PinContext context outside a PinContextProvider provider.');
+  }
+  return pc;
+};

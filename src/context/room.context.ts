@@ -7,18 +7,18 @@ export type RoomContext = {
 };
 
 const [useProvideRoomContext, useRoomContext] = createInjectionState(
-  (initialValue: Room): Readonly<ShallowRef<Room>> => {
+  (initialValue: Room): ShallowRef<Room> => {
     const room = shallowRef(initialValue);
 
     return room;
   },
 );
 
-export function useMaybeRoomContext(): Readonly<ShallowRef<Room>> | undefined {
+export function useMaybeRoomContext(): ShallowRef<Room> | undefined {
   return useRoomContext();
 }
 
-export function useEnsureRoom(room?: Room): Readonly<ShallowRef<Room>> {
+export function useEnsureRoomContext(room?: Room): ShallowRef<Room> {
   const r = room ? shallowRef(room) : useRoomContext();
 
   if (!r || !r.value) {

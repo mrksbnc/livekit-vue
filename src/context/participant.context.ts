@@ -7,18 +7,18 @@ export type ParticipantContext = {
 };
 
 const [useProvideParticipantContext, useParticipantContext] = createInjectionState(
-  (initialValue: Participant): Readonly<ShallowRef<Participant>> => {
+  (initialValue: Participant): ShallowRef<Participant> => {
     const participant = shallowRef(initialValue);
 
     return participant;
   },
 );
 
-export function useMaybeParticipantContext(): Readonly<ShallowRef<Participant>> | undefined {
+export function useMaybeParticipantContext(): ShallowRef<Participant> | undefined {
   return useParticipantContext();
 }
 
-export function useEnsureParticipant(participant?: Participant): Readonly<ShallowRef<Participant>> {
+export function useEnsureParticipant(participant?: Participant): ShallowRef<Participant> {
   const r = participant ? shallowRef(participant) : useParticipantContext();
 
   if (!r || !r.value) {

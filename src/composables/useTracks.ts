@@ -1,4 +1,4 @@
-import { useEnsureRoom } from '@/context/room.context';
+import { useEnsureRoomContext } from '@/context/room.context';
 import {
   isSourcesWithOptions,
   isSourceWitOptions,
@@ -68,7 +68,7 @@ export function useTracks<T extends SourcesArray = Track.Source[]>(
   ] as T,
   options: UseTracksOptions = {},
 ): UseTracksHookReturnType<T> {
-  const room = useEnsureRoom(options.room);
+  const room = useEnsureRoomContext(options.room);
   const trackReferences = ref<TrackReference[]>([]);
   const participants = ref<Participant[]>([]);
 

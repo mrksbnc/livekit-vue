@@ -1,9 +1,9 @@
-import { useEnsureRoom } from '@/context/room.context';
+import { useEnsureRoomContext } from '@/context/room.context';
 import { setupStartVideo } from '@livekit/components-core';
 import { useObservable } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
 import type { Observable } from 'rxjs';
-import { computed, ref, toRefs, type HTMLAttributes, type Ref } from 'vue';
+import { computed, ref, toRefs, type HTMLAttributes } from 'vue';
 import { useObservableState } from './private/useObservableState';
 
 export type UseStartVideoProps = {
@@ -11,11 +11,8 @@ export type UseStartVideoProps = {
   props: HTMLAttributes;
 };
 
-export function useStartVideo({ room, props }: UseStartVideoProps): Readonly<{
-  canPlayVideo: Ref<boolean>;
-  elementProps: HTMLAttributes;
-}> {
-  const roomEnsured = useEnsureRoom(room);
+export function useStartVideo({ room, props }: UseStartVideoProps) {
+  const roomEnsured = useEnsureRoomContext(room);
 
   const setupStartVideoResult = computed<ReturnType<typeof setupStartVideo>>(() =>
     setupStartVideo(),

@@ -1,20 +1,22 @@
 import { createInjectionState } from '@vueuse/core';
 import { shallowRef, type ShallowRef } from 'vue';
-import { usePinContext, type PinContextType } from './pin.context';
+import { usePinContext, type PinContext } from './pin.context';
 import { useWidgetContext, type WidgetContextType } from './widget.context';
 
 export type LayoutState = {
-  pin: PinContextType;
+  pin: PinContext;
   widget: WidgetContextType;
 };
 
 const [useProvideLayoutContext, useLayoutContext] = createInjectionState(
-  (initialValue: LayoutState): Readonly<ShallowRef<LayoutState>> => {
+  (initialValue: LayoutState): ShallowRef<LayoutState> => {
     const state = shallowRef(initialValue);
 
     return state;
   },
 );
+
+export { useLayoutContext, useProvideLayoutContext };
 
 export function useMaybeLayoutContext(): ShallowRef<LayoutState> | undefined {
   return useLayoutContext();
@@ -37,7 +39,7 @@ export function useCreateLayoutContext() {
 }
 
 export function useEnsureCreateLayoutContext(layoutContext?: {
-  pin: PinContextType;
+  pin: PinContext;
   widget: WidgetContextType;
 }) {
   return shallowRef(layoutContext) ?? useCreateLayoutContext();

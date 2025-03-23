@@ -1,18 +1,26 @@
 import { useSubscription } from '@vueuse/rxjs';
-import type { Observable } from 'rxjs';
-import { ref, watch, type Ref } from 'vue';
+import { Observable } from 'rxjs';
+import { computed, shallowRef, watch, type ShallowRef } from 'vue';
 
-export type UseObservableStateArgs<T> = {
-  observable?: Observable<T>;
+export type UseObservableStateArgs<T = unknown> = {
+  observable?: Observable<T> | undefined;
   startWith: T;
   resetWhenObservableChanges?: boolean;
 };
 
-export function useObservableState<T>(options: UseObservableStateArgs<T>): Readonly<Ref<T>> {
-  const state = ref<T>(options.startWith);
+export function useObservableState<T>(options: UseObservableStateArgs<T>): ShallowRef<T> {
+  const state = shallowRef<T>(options.startWith);
 
-  watch([options.observable, options.resetWhenObservableChanges], () => {
-    if (options.resetWhenObservableChanges) {
+  const observable = computed<Observable<T | undefined> | undefined>(() => {
+    return options.observable;
+  });
+
+  const resetWhenObservableChanges = computed<boolean>(() => {
+    return options.resetWhenObservableChanges ?? false;
+  });
+
+  watch([observable, resetWhenObservableChanges], () => {
+    if (resetWhenObservableChanges.value) {
       state.value = options.startWith;
     }
 
@@ -20,7 +28,13 @@ export function useObservableState<T>(options: UseObservableStateArgs<T>): Reado
       return;
     }
 
-    useSubscription(options.observable.subscribe((val) => (state.value = val)));
+    if (observable.value) {
+      useSubscription(
+        observable.value.subscribe((value) => {
+          state.value = value ?? options.startWith;
+        }),
+      );
+    }
   });
 
   return state;

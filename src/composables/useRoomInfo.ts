@@ -1,4 +1,4 @@
-import { useEnsureRoom } from '@/context/room.context';
+import { useEnsureRoomContext } from '@/context/room.context';
 import { roomInfoObserver } from '@livekit/components-core';
 import { useObservable } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
@@ -16,7 +16,7 @@ export type RoomInfo = {
 };
 
 export function useRoomInfo(options: UseRoomInfoOptions = {}) {
-  const room = useEnsureRoom(options.room);
+  const room = useEnsureRoomContext(options.room);
 
   const infoObserver = useObservable(
     roomInfoObserver(room.value) as unknown as Observable<RoomInfo>,

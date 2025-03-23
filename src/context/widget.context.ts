@@ -7,7 +7,7 @@ export type WidgetContextType = {
 };
 
 const [useProvideWidgetContext, useWidgetContext] = createInjectionState(
-  (initialValue: WidgetState): Readonly<ShallowRef<WidgetState>> => {
+  (initialValue: WidgetState): ShallowRef<WidgetState> => {
     const state = shallowRef(initialValue);
 
     return state;

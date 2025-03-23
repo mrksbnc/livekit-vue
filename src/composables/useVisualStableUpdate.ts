@@ -12,7 +12,7 @@ export function useVisualStableUpdate(
   trackReferences: TrackReferenceOrPlaceholder[],
   maxItemsOnPage: number,
   options: UseVisualStableUpdateOptions = {},
-): Ref<TrackReferenceOrPlaceholder[]> {
+) {
   const lastMaxItemsOnPage = ref<number>(-1);
   const lastTrackRefs = ref<TrackReferenceOrPlaceholder[]>([]);
 

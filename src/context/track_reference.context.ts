@@ -3,24 +3,20 @@ import { createInjectionState } from '@vueuse/core';
 import { shallowRef, type ShallowRef } from 'vue';
 
 const [useTrackRefContextProvider, useTrackRefContext] = createInjectionState(
-  (
-    ref: TrackReference | TrackReferenceOrPlaceholder,
-  ): Readonly<ShallowRef<TrackReferenceOrPlaceholder>> => {
+  (ref: TrackReference | TrackReferenceOrPlaceholder): ShallowRef<TrackReferenceOrPlaceholder> => {
     const trackRef = shallowRef(ref);
 
     return trackRef;
   },
 );
 
-export function useMaybeTrackRefContext():
-  | Readonly<ShallowRef<TrackReferenceOrPlaceholder>>
-  | undefined {
+export function useMaybeTrackRefContext(): ShallowRef<TrackReferenceOrPlaceholder> | undefined {
   return useTrackRefContext();
 }
 
 export function useEnsureTrackRef(
   trackRef?: TrackReferenceOrPlaceholder,
-): Readonly<ShallowRef<TrackReferenceOrPlaceholder>> {
+): ShallowRef<TrackReferenceOrPlaceholder> {
   const t = trackRef ? shallowRef(trackRef) : useTrackRefContext();
 
   if (!t || !t.value) {

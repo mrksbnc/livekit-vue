@@ -3,7 +3,7 @@ import type { Participant } from 'livekit-client';
 import { ref, watch, type Ref } from 'vue';
 import { useSpeakingParticipants } from './useSpeakingParticipants';
 
-export function useSortedParticipants(participants: Array<Participant>): Ref<Participant[]> {
+export function useSortedParticipants(participants: Array<Participant>) {
   const activeSpeakers = useSpeakingParticipants();
   const sortedParticipants = ref<Participant[]>(sortParticipants(participants));
 

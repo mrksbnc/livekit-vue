@@ -1,4 +1,4 @@
-import { useEnsureRoom } from '@/context/room.context';
+import { useEnsureRoomContext } from '@/context/room.context';
 import {
   connectedParticipantObserver,
   participantByIdentifierObserver,
@@ -16,7 +16,7 @@ export function useRemoteParticipant(
   identityOrIdentifier: string | ParticipantIdentifier,
   options: UseRemoteParticipantOptions = {},
 ) {
-  const room: Readonly<Ref<Room>> = useEnsureRoom();
+  const room: Ref<Room> = useEnsureRoomContext();
   const updateOnlyOn: Ref<ParticipantEvent[]> = ref(options.updateOnlyOn ?? []);
   const participant: Ref<RemoteParticipant | undefined> = ref(undefined);
 

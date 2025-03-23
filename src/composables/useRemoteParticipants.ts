@@ -1,18 +1,16 @@
-import { useEnsureRoom } from '@/context/room.context';
+import { useEnsureRoomContext } from '@/context/room.context';
 import { connectedParticipantsObserver } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import type { Participant, Room, RoomEvent } from 'livekit-client';
-import { ref, watch, type Ref } from 'vue';
+import { ref, watch } from 'vue';
 
 export type UseRemoteParticipantsOptions = {
   updateOnlyOn?: RoomEvent[];
   room?: Room;
 };
 
-export function useRemoteParticipants(
-  options: UseRemoteParticipantsOptions = {},
-): Ref<Participant[]> {
-  const room = useEnsureRoom(options.room);
+export function useRemoteParticipants(options: UseRemoteParticipantsOptions = {}) {
+  const room = useEnsureRoomContext(options.room);
   const participants = ref<Participant[]>([]);
 
   watch([room, options.updateOnlyOn], () => {
@@ -23,5 +21,5 @@ export function useRemoteParticipants(
     );
   });
 
-  return participants as Ref<Participant[]>;
+  return participants;
 }
