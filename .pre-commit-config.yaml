@@ -1,0 +1,16 @@
+repos:
+  - repo: local
+    hooks:
+      - id: type-check
+        name: Type Check
+        language: system
+        entry: pnpm run type-check
+        stages: [pre-push]
+        pass_filenames: false
+
+      - id: format-check
+        name: Check Formatting
+        language: system
+        entry: pnpm run format:check
+        stages: [pre-push]
+        pass_filenames: false
