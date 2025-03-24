@@ -81,6 +81,7 @@
     "vitest": "^3.0.8",
     "vue-tsc": "^2.2.8"
   },
+  "packageManager": "pnpm@10.6.5",
   "engines": {
     "node": ">=22"
   }
