@@ -1,6 +1,6 @@
 {
   "name": "@mrksbnc/livekit-vue",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "MIT",
   "author": "Bence Markus",
   "type": "module",
