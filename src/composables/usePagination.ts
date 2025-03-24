@@ -46,7 +46,10 @@ export function usePagination(
     }
   };
 
-  const updatedTrackReferences = useVisualStableUpdate(trackReferences, itemPerPage);
+  const { isLayoutChanged, sortedTrackReferences, updatedTrackReferences } = useVisualStableUpdate({
+    maxItemsOnPage: itemPerPage,
+    trackReferences,
+  });
 
   const tracksOnPage = computed<TrackReferenceOrPlaceholder[]>(() => {
     return updatedTrackReferences.value.slice(firstItemIndex.value, lastItemIndex.value);

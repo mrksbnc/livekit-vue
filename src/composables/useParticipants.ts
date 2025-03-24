@@ -15,12 +15,14 @@ export type UseParticipants = {
 export type MixedParticipantArray = (RemoteParticipant | LocalParticipant)[];
 
 export function useParticipants(options: UseParticipantsOptions = {}): UseParticipants {
-  const remoteParticipants = useRemoteParticipants(options);
+  const { participants } = useRemoteParticipants({
+    options,
+  });
   const localParticipant = useLocalParticipant()?.localParticipant;
 
-  const participants = computed<(RemoteParticipant | LocalParticipant)[]>(() => {
-    return [localParticipant.value, ...remoteParticipants.value] as MixedParticipantArray;
+  const p = computed<(RemoteParticipant | LocalParticipant)[]>(() => {
+    return [localParticipant.value, ...participants.value] as MixedParticipantArray;
   });
 
-  return { participants };
+  return { participants: p };
 }
