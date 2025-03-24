@@ -4,6 +4,10 @@
   "license": "MIT",
   "author": "Bence Markus",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrksbnc/livekit-vue.git"
+  },
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
