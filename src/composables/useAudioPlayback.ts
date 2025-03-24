@@ -3,7 +3,7 @@ import { roomAudioPlaybackAllowedObservable } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
 import { Observable } from 'rxjs';
-import { computed, ref, type ShallowRef } from 'vue';
+import { ref, type ShallowRef } from 'vue';
 
 export type AudioPlaybackObservable = Observable<{
   canPlayAudio: boolean;
@@ -22,11 +22,6 @@ export function useAudioPlayback(room?: Room): UseAudioPlaybackRetunType {
   async function startAudio() {
     await roomEnsured.value.startAudio();
   }
-
-  const observable = computed<AudioPlaybackObservable>(
-    () =>
-      roomAudioPlaybackAllowedObservable(roomEnsured.value) as unknown as AudioPlaybackObservable,
-  );
 
   useSubscription(
     roomAudioPlaybackAllowedObservable(roomEnsured.value).subscribe((evt) => {

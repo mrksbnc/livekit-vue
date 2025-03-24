@@ -149,7 +149,7 @@ export function useMultibandTrackVolume(
       : <LocalAudioTrack | RemoteAudioTrack | undefined>trackOrTrackReference?.publication?.track;
 
   const opts = { ...multibandDefaults, ...options };
-  const frequencyBands = ref<number[]>(new Array(opts.bands).fill(0));
+  const frequencyBands = ref<number[]>(Array.from({ length: opts.bands }, () => 0));
 
   watch(
     [track, options],
