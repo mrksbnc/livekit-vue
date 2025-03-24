@@ -1,21 +1,19 @@
 import { useEnsureRoomContext } from '@/context/room.context';
 import { connectionStateObserver } from '@livekit/components-core';
+import { useSubscription } from '@vueuse/rxjs';
 import { ConnectionState, type Room } from 'livekit-client';
-import { Observable } from 'rxjs';
-import { computed, type ShallowRef } from 'vue';
-import { useObservableState } from './private/useObservableState';
+import { ref, type ShallowRef } from 'vue';
 
 export function useConnectionState(room?: Room): ShallowRef<ConnectionState> {
   const r = useEnsureRoomContext(room);
 
-  const observable = computed<Observable<ConnectionState>>(
-    () => connectionStateObserver(r.value) as unknown as Observable<ConnectionState>,
-  );
+  const connectionState = ref<ConnectionState>(r.value.state);
 
-  const connectionState = useObservableState({
-    observable: observable.value as unknown as Observable<ConnectionState>,
-    startWith: r.value.state,
-  });
+  useSubscription(
+    connectionStateObserver(r.value).subscribe((state) => {
+      connectionState.value = state;
+    }),
+  );
 
   return connectionState;
 }

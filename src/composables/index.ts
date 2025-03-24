@@ -37,6 +37,21 @@ export {
   type UseLocalParticipantOptions,
   type UseLocalParticipantReturnType,
 } from './useLocalParticipant';
+export {
+  useParticipantAttribute,
+  useParticipantAttributes,
+  type AttributeObservable,
+  type UseParticipantAttributesOptions,
+} from './useParticipantAttributes';
+export {
+  useParticipantInfo,
+  type ParticipantInfo,
+  type UseParticipantInfoOptions,
+} from './useParticipantInfo';
+export {
+  useParticipantPermissions,
+  type UseParticipantPermissionsOptions,
+} from './useParticipantPermissions';
 export { useParticipants, type UseParticipantsOptions } from './useParticipants';
 export { useParticipantTile, type UseParticipantTileProps } from './useParticipantTile';
 export { useParticipantTracks } from './useParticipantTracks';

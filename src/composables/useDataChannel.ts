@@ -1,11 +1,10 @@
 import { useEnsureRoomContext } from '@/context/room.context';
 import { setupDataMessageHandler, type ReceivedDataMessage } from '@livekit/components-core';
+import { useSubscription } from '@vueuse/rxjs';
 import type { DataPublishOptions, RemoteParticipant } from 'livekit-client';
-import type { Observable } from 'rxjs';
-import { computed, toRefs, type ShallowRef } from 'vue';
-import { useObservableState } from './private/useObservableState';
+import { computed, ref, toRefs, type ShallowRef } from 'vue';
 
-export type MessagePayload<T extends string | undefined = undefined> = {
+export type MessagePayload<T> = {
   payload: Uint8Array;
   topic: T;
   from: RemoteParticipant | undefined;
@@ -27,10 +26,13 @@ export function useDataChannel(
 export function useDataChannel<T extends string>(
   topicOrCallback?: T | ((msg: ReceivedDataMessage) => void),
   callback?: (msg: ReceivedDataMessage<T>) => void,
-): UseDataChannelReturnType {
+): UseDataChannelReturnType<T> {
   const onMessage = typeof topicOrCallback === 'function' ? topicOrCallback : callback;
   const topic = typeof topicOrCallback === 'string' ? topicOrCallback : undefined;
   const room = useEnsureRoomContext();
+
+  const isSending = ref<boolean>(false);
+  const message = ref<MessagePayload<T> | undefined>(undefined);
 
   const messageHandler = computed(() => {
     return setupDataMessageHandler(room?.value, topic, onMessage);
@@ -38,18 +40,20 @@ export function useDataChannel<T extends string>(
 
   const { send, messageObservable, isSendingObservable } = toRefs(messageHandler.value);
 
-  const message = useObservableState({
-    observable: messageObservable as unknown as Observable<MessagePayload>,
-    startWith: undefined,
-  });
+  useSubscription(
+    messageObservable.value.subscribe((msg) => {
+      message.value = msg;
+    }),
+  );
 
-  const isSending = useObservableState({
-    observable: isSendingObservable as unknown as Observable<boolean>,
-    startWith: false,
-  });
+  useSubscription(
+    isSendingObservable.value.subscribe((sending) => {
+      isSending.value = sending;
+    }),
+  );
 
   return {
-    message,
+    message: message as ShallowRef<MessagePayload<T> | undefined>,
     send,
     isSending,
   };

@@ -1,32 +1,47 @@
 import { trackSyncTimeObserver, type TrackReferenceOrPlaceholder } from '@livekit/components-core';
-import { useObservable } from '@vueuse/rxjs';
-import type { Observable } from 'rxjs';
-import type { ShallowRef } from 'vue';
-import { useObservableState } from './private/useObservableState';
+import { useSubscription } from '@vueuse/rxjs';
+import { Observable } from 'rxjs';
+import { computed, onMounted, ref, watch, type ShallowRef } from 'vue';
 
-export function useTrackSyncTime(ref: TrackReferenceOrPlaceholder | undefined): ShallowRef<{
+export type UseTrackSyncTimeData = {
+  timestamp: number;
+  rtpTimestamp: number | undefined;
+};
+
+export function useTrackSyncTime(reference: TrackReferenceOrPlaceholder | undefined): ShallowRef<{
   timestamp: number;
   rtpTimestamp: number | undefined;
 }> {
-  const observable = ref?.publication?.track
-    ? // @ts-expect-error - Observer type mismatch
-      useObservable(trackSyncTimeObserver(ref?.publication.track))
-    : undefined;
-
-  if (!observable) {
-    throw new Error('Please provide a valid observable when using `useTrackSyncTime`');
-  }
-
-  const observedState = useObservableState({
-    observable: observable?.value as unknown as Observable<{
-      timestamp: number;
-      rtpTimestamp: number;
-    }>,
-    startWith: {
-      timestamp: Date.now(),
-      rtpTimestamp: ref?.publication?.track?.rtpTimestamp,
-    },
+  const observable = computed<Observable<number> | undefined>(() => {
+    return reference?.publication?.track
+      ? (trackSyncTimeObserver(reference?.publication.track) as unknown as Observable<number>)
+      : undefined;
   });
 
-  return observedState;
+  const dataRef = ref<UseTrackSyncTimeData>({
+    timestamp: Date.now(),
+    rtpTimestamp: reference?.publication?.track?.rtpTimestamp,
+  });
+
+  watch(
+    () => observable.value,
+    (val) => {
+      if (val) {
+        useSubscription(
+          val.subscribe((data) => {
+            dataRef.value.timestamp = data;
+          }),
+        );
+      }
+    },
+    { immediate: true },
+  );
+
+  onMounted(() => {
+    if (!observable.value) {
+      throw new Error('Please provide a valid observable when using `useTrackSyncTime`');
+    }
+  });
+
+  return dataRef;
 }

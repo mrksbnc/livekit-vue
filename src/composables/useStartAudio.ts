@@ -1,10 +1,8 @@
 import { useEnsureRoomContext } from '@/context/room.context';
 import { setupStartAudio } from '@livekit/components-core';
-import { useObservable } from '@vueuse/rxjs';
+import { useSubscription } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
-import type { Observable } from 'rxjs';
 import { computed, ref, toRefs, type HTMLAttributes, type ShallowRef } from 'vue';
-import { useObservableState } from './private/useObservableState';
 
 export type UseStartAudioProps = {
   room?: Room;
@@ -19,26 +17,19 @@ export type UseStartAudioReturnType = {
 export function useStartAudio({ room, props }: UseStartAudioProps): UseStartAudioReturnType {
   const roomEnsured = useEnsureRoomContext(room);
 
+  const canPlayAudio = ref<boolean>(false);
+
   const setupStartAudioResult = computed(() => setupStartAudio());
 
   const { className, roomAudioPlaybackAllowedObservable, handleStartAudioPlayback } = toRefs(
     setupStartAudioResult.value,
   );
 
-  const observable = useObservable(
-    roomAudioPlaybackAllowedObservable.value(roomEnsured.value) as unknown as Observable<{
-      canPlayAudio: boolean;
-    }>,
+  useSubscription(
+    roomAudioPlaybackAllowedObservable.value(roomEnsured.value).subscribe((evt) => {
+      canPlayAudio.value = evt.canPlayAudio;
+    }),
   );
-
-  const canPlayAudioObj = useObservableState({
-    observable: observable.value as unknown as Observable<{ canPlayAudio: boolean }>,
-    startWith: {
-      canPlayAudio: roomEnsured.value.canPlaybackVideo,
-    },
-  });
-
-  const canPlayAudio = ref(canPlayAudioObj.value.canPlayAudio);
 
   return {
     canPlayAudio,

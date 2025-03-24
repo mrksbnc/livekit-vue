@@ -1,5 +1,3 @@
-import type { HTMLAttributes } from 'vue';
-
-export type DisconnectButtonProps = HTMLAttributes & {
+export type DisconnectButtonProps = {
   stopTracks?: boolean;
 };

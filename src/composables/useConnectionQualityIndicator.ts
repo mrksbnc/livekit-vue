@@ -1,9 +1,8 @@
 import { useEnsureParticipant } from '@/context/participant.context';
 import { setupConnectionQualityIndicator } from '@livekit/components-core';
+import { useSubscription } from '@vueuse/rxjs';
 import { ConnectionQuality, type Participant } from 'livekit-client';
-import type { Observable } from 'rxjs';
-import { computed, toRefs, type ShallowRef } from 'vue';
-import { useObservableState } from './private/useObservableState';
+import { computed, ref, toRefs, type ShallowRef } from 'vue';
 
 export type ConnectionQualityIndicatorOptions = {
   participant?: Participant;
@@ -19,6 +18,8 @@ export function useConnectionQualityIndicator(
 ): ConnectionQualityIndicatorReturnType {
   const p = useEnsureParticipant(options.participant);
 
+  const quality = ref<ConnectionQuality>(ConnectionQuality.Unknown);
+
   const setupConnectionQualityIndicatorResult = computed(() =>
     setupConnectionQualityIndicator(p.value),
   );
@@ -27,10 +28,11 @@ export function useConnectionQualityIndicator(
     setupConnectionQualityIndicatorResult.value,
   );
 
-  const quality = useObservableState({
-    observable: connectionQualityObserver.value as unknown as Observable<ConnectionQuality>,
-    startWith: ConnectionQuality.Unknown,
-  });
+  useSubscription(
+    connectionQualityObserver.value.subscribe((q) => {
+      quality.value = q;
+    }),
+  );
 
   return {
     className,

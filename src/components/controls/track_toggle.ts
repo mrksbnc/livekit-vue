@@ -1,7 +1,7 @@
 import type { CaptureOptionsBySource, ToggleSource } from '@livekit/components-core';
 import type { TrackPublishOptions } from 'livekit-client';
 
-export interface TrackToggleProps {
+export type TrackToggleProps = {
   source: ToggleSource;
   showIcon?: boolean;
   initialState?: boolean;
@@ -10,4 +10,4 @@ export interface TrackToggleProps {
   onChange?: (enabled: boolean, isUserInitiated: boolean) => void;
   onDeviceError?: (error: Error | unknown) => void;
   customOnClickHandler?: (evt: MouseEvent) => void;
-}
+};

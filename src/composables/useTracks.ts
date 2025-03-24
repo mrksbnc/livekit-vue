@@ -2,12 +2,14 @@ import { useEnsureRoomContext } from '@/context/room.context';
 import {
   isSourcesWithOptions,
   isSourceWitOptions,
+  trackReferencesObservable,
   type SourcesArray,
   type TrackReference,
   type TrackReferenceOrPlaceholder,
   type TrackReferencePlaceholder,
   type TrackSourceWithOptions,
 } from '@livekit/components-core';
+import { useSubscription } from '@vueuse/rxjs';
 import { Participant, Track, type Room, type RoomEvent } from 'livekit-client';
 import { computed, ref } from 'vue';
 
@@ -72,9 +74,9 @@ export function useTracks<T extends SourcesArray = Track.Source[]>(
   const trackReferences = ref<TrackReference[]>([]);
   const participants = ref<Participant[]>([]);
 
-  const computedSources = computed(() =>
-    sources.map((s) => (isSourceWitOptions(s) ? s.source : s)),
-  );
+  const computedSources = computed<Track.Source[]>(() => {
+    return sources.map((s) => (isSourceWitOptions(s) ? s.source : s));
+  });
 
   const maybeTrackReferences = computed(() => {
     if (isSourcesWithOptions(sources)) {
@@ -117,6 +119,14 @@ export function useTracks<T extends SourcesArray = Track.Source[]>(
       return trackReferences;
     }
   });
+
+  useSubscription(
+    trackReferencesObservable(room.value, computedSources.value, {}).subscribe((data) => {
+      console.debug('setting track bundles', trackReferences, participants);
+      trackReferences.value = data.trackReferences;
+      participants.value = data.participants;
+    }),
+  );
 
   return maybeTrackReferences.value as UseTracksHookReturnType<T>;
 }

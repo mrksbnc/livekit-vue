@@ -8,7 +8,6 @@ export interface UseVisualStableUpdateOptions {
 }
 
 export function useVisualStableUpdate(
-  /** `TrackReference`s to display in the grid.  */
   trackReferences: TrackReferenceOrPlaceholder[],
   maxItemsOnPage: number,
   options: UseVisualStableUpdateOptions = {},

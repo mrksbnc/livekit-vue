@@ -1,23 +1,22 @@
 import { useEnsureParticipant } from '@/context/participant.context';
 import { createIsSpeakingObserver } from '@livekit/components-core';
+import { useSubscription } from '@vueuse/rxjs';
 import type { Participant } from 'livekit-client';
 import type { Observable } from 'rxjs';
-import { computed, type ShallowRef } from 'vue';
-import { useObservableState } from './private/useObservableState';
+import { ref, type ShallowRef } from 'vue';
 
 export type IsSpeakingObservable = Observable<boolean>;
 
 export function useIsSpeaking(participant?: Participant): ShallowRef<boolean> {
   const p = useEnsureParticipant(participant);
 
-  const observable = computed<IsSpeakingObservable>(
-    () => createIsSpeakingObserver(p.value) as unknown as IsSpeakingObservable,
-  );
+  const isSpeaking = ref<boolean>(false);
 
-  const isSpeaking = useObservableState({
-    observable: observable.value as unknown as IsSpeakingObservable,
-    startWith: p.value.isSpeaking,
-  });
+  useSubscription(
+    createIsSpeakingObserver(p.value).subscribe((speaking) => {
+      isSpeaking.value = speaking;
+    }),
+  );
 
   return isSpeaking;
 }

@@ -1,10 +1,8 @@
 import { useEnsureRoomContext } from '@/context/room.context';
 import { roomInfoObserver } from '@livekit/components-core';
-import { useObservable } from '@vueuse/rxjs';
+import { useSubscription } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
-import type { Observable } from 'rxjs';
-import { toRefs, type ShallowRef } from 'vue';
-import { useObservableState } from './private/useObservableState';
+import { ref, toRefs, type ShallowRef } from 'vue';
 
 export type UseRoomInfoOptions = {
   room?: Room;
@@ -12,31 +10,24 @@ export type UseRoomInfoOptions = {
 
 export type RoomInfo = {
   name: string;
-  metadata: string;
+  metadata: string | undefined;
 };
 
-export function useRoomInfo(options: UseRoomInfoOptions = {}): {
-  name: ShallowRef<string>;
-  metadata: ShallowRef<string | undefined>;
-} {
+export function useRoomInfo(options: UseRoomInfoOptions = {}): ShallowRef<RoomInfo> {
   const room = useEnsureRoomContext(options.room);
 
-  const infoObserver = useObservable(
-    roomInfoObserver(room.value) as unknown as Observable<RoomInfo>,
-  );
-
-  const info = useObservableState({
-    observable: infoObserver.value as unknown as Observable<RoomInfo>,
-    startWith: {
-      name: room.value.name,
-      metadata: room.value.metadata,
-    },
+  const info = ref<RoomInfo>({
+    name: room.value.name,
+    metadata: room.value.metadata,
   });
+
+  useSubscription(
+    roomInfoObserver(room.value).subscribe((inf) => {
+      info.value = inf;
+    }),
+  );
 
   const { name, metadata } = toRefs(info.value);
 
-  return {
-    name,
-    metadata,
-  };
+  return info;
 }
