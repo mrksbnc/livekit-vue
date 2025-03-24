@@ -9,36 +9,40 @@ import type {
   VideoCaptureOptions,
 } from 'livekit-client';
 import type { Observable } from 'rxjs';
-import { computed, onMounted, ref, watch, type ShallowRef } from 'vue';
+import { computed, onMounted, ref, watch, type Ref } from 'vue';
 
 export type UseTrackToggleProps = Omit<TrackToggleProps, 'showIcon'>;
 
 export type StateObserver = Observable<boolean>;
 
-export type UseTrackToggleReturnType = {
-  toggle?:
-    | ((forceState?: boolean) => Promise<void>)
-    | ((
-        forceState?: boolean,
-        captureOptions?:
-          | VideoCaptureOptions
-          | AudioCaptureOptions
-          | ScreenShareCaptureOptions
-          | undefined,
-      ) => Promise<boolean | undefined>);
-  enabled: ShallowRef<boolean>;
-  pending: ShallowRef<boolean | undefined>;
-  track: ShallowRef<LocalTrackPublication | undefined>;
-  buttonProps: {
-    'aria-pressed': boolean;
-    'data-lk-source': ToggleSource;
-    'data-lk-enabled': boolean;
-    disabled: boolean;
-    onClick: (evt: MouseEvent) => void;
-  };
+export type ToggleButtonAttributes = {
+  'aria-pressed': boolean;
+  'data-lk-source': ToggleSource;
+  'data-lk-enabled': boolean;
 };
 
-export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggleReturnType {
+export type ToggleFunction =
+  | ((forceState?: boolean) => Promise<void>)
+  | ((
+      forceState?: boolean,
+      captureOptions?:
+        | VideoCaptureOptions
+        | AudioCaptureOptions
+        | ScreenShareCaptureOptions
+        | undefined,
+    ) => Promise<boolean | undefined>);
+
+export type UseTrackToggle = {
+  toggle?: ToggleFunction;
+  enabled: Ref<boolean>;
+  pending: Ref<boolean | undefined>;
+  track: Ref<LocalTrackPublication | undefined>;
+  attributes: Ref<ToggleButtonAttributes>;
+  disabled: Ref<boolean>;
+  onClick: (evt: MouseEvent) => void;
+};
+
+export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggle {
   const room = useMaybeRoomContext();
 
   const enabled = ref<boolean>(options.initialState ?? false);
@@ -63,6 +67,10 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggleRetu
     return setupManualToggle();
   });
 
+  const disabled = computed<boolean>(() => {
+    return pending.value ?? false;
+  });
+
   const toggle = setupMediaToggleResult.value.toggle;
 
   const enabledObserver = computed<StateObserver>(() => {
@@ -73,7 +81,13 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggleRetu
     return setupMediaToggleResult.value.pendingObserver as unknown as StateObserver;
   });
 
-  function onOnClick(evt: MouseEvent): void {
+  const attributes = computed<ToggleButtonAttributes>(() => ({
+    'aria-pressed': enabled.value,
+    'data-lk-source': options.source,
+    'data-lk-enabled': enabled.value,
+  }));
+
+  function onClick(evt: MouseEvent): void {
     userInteractionRef.value = true;
 
     if (toggle) {
@@ -111,12 +125,8 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggleRetu
     enabled,
     pending,
     track,
-    buttonProps: {
-      'aria-pressed': enabled.value,
-      'data-lk-source': options.source,
-      'data-lk-enabled': enabled.value,
-      disabled: pending.value ?? false,
-      onClick: onOnClick,
-    },
+    attributes,
+    onClick,
+    disabled,
   };
 }

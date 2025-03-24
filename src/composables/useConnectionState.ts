@@ -2,9 +2,13 @@ import { useEnsureRoomContext } from '@/context/room.context';
 import { connectionStateObserver } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import { ConnectionState, type Room } from 'livekit-client';
-import { ref, type ShallowRef } from 'vue';
+import { ref, type Ref } from 'vue';
 
-export function useConnectionState(room?: Room): ShallowRef<ConnectionState> {
+export type UseConnectionState = {
+  connectionState: Ref<ConnectionState>;
+};
+
+export function useConnectionState(room?: Room): UseConnectionState {
   const r = useEnsureRoomContext(room);
 
   const connectionState = ref<ConnectionState>(r.value.state);
@@ -15,5 +19,5 @@ export function useConnectionState(room?: Room): ShallowRef<ConnectionState> {
     }),
   );
 
-  return connectionState;
+  return { connectionState };
 }

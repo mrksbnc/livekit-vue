@@ -7,11 +7,10 @@ import {
   type TrackReference,
   type TrackReferenceOrPlaceholder,
   type TrackReferencePlaceholder,
-  type TrackSourceWithOptions,
 } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import { Participant, Track, type Room, type RoomEvent } from 'livekit-client';
-import { computed, ref } from 'vue';
+import { computed, shallowRef, type Ref } from 'vue';
 
 export type UseTracksOptions = {
   updateOnlyOn?: RoomEvent[];
@@ -19,11 +18,9 @@ export type UseTracksOptions = {
   room?: Room;
 };
 
-export type UseTracksHookReturnType<T> = T extends Track.Source[]
-  ? TrackReference[]
-  : T extends TrackSourceWithOptions[]
-    ? TrackReferenceOrPlaceholder[]
-    : never;
+export type UseTracks = {
+  trackReferences: Ref<TrackReferenceOrPlaceholder[] | TrackReference[]>;
+};
 
 function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
   const _difference = new Set(setA);
@@ -33,8 +30,8 @@ function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
   return _difference;
 }
 
-export function requiredPlaceholders<T extends SourcesArray>(
-  sources: T,
+export function requiredPlaceholders(
+  sources: SourcesArray,
   participants: Participant[],
 ): Map<Participant['identity'], Track.Source[]> {
   const placeholderMap = new Map<Participant['identity'], Track.Source[]>();
@@ -60,25 +57,25 @@ export function requiredPlaceholders<T extends SourcesArray>(
   return placeholderMap;
 }
 
-export function useTracks<T extends SourcesArray = Track.Source[]>(
-  sources: T = [
+export function useTracks(
+  sources: SourcesArray = [
     Track.Source.Camera,
     Track.Source.Microphone,
     Track.Source.ScreenShare,
     Track.Source.ScreenShareAudio,
     Track.Source.Unknown,
-  ] as T,
+  ],
   options: UseTracksOptions = {},
-): UseTracksHookReturnType<T> {
+): UseTracks {
   const room = useEnsureRoomContext(options.room);
-  const trackReferences = ref<TrackReference[]>([]);
-  const participants = ref<Participant[]>([]);
+  const participants = shallowRef<Participant[]>([]);
+  const trackReferences = shallowRef<TrackReference[]>([]);
 
   const computedSources = computed<Track.Source[]>(() => {
     return sources.map((s) => (isSourceWitOptions(s) ? s.source : s));
   });
 
-  const maybeTrackReferences = computed(() => {
+  const computedTrackRefs = computed<TrackReferenceOrPlaceholder[] | TrackReference[]>(() => {
     if (isSourcesWithOptions(sources)) {
       const requirePlaceholder = requiredPlaceholders(sources, participants.value as Participant[]);
 
@@ -116,7 +113,7 @@ export function useTracks<T extends SourcesArray = Track.Source[]>(
 
       return trackReferencesWithPlaceholders;
     } else {
-      return trackReferences;
+      return trackReferences.value;
     }
   });
 
@@ -128,5 +125,7 @@ export function useTracks<T extends SourcesArray = Track.Source[]>(
     }),
   );
 
-  return maybeTrackReferences.value as UseTracksHookReturnType<T>;
+  return {
+    trackReferences: computedTrackRefs,
+  };
 }

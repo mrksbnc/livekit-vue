@@ -2,26 +2,34 @@ import { useEnsureRoomContext } from '@/context/room.context';
 import { connectedParticipantsObserver } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import type { Participant, Room, RoomEvent } from 'livekit-client';
-import { ref, watch, type ShallowRef } from 'vue';
+import { shallowRef, watch, type ShallowRef } from 'vue';
 
 export type UseRemoteParticipantsOptions = {
   updateOnlyOn?: RoomEvent[];
   room?: Room;
 };
 
-export function useRemoteParticipants(
-  options: UseRemoteParticipantsOptions = {},
-): ShallowRef<Participant[]> {
-  const room = useEnsureRoomContext(options.room);
-  const participants = ref<Participant[]>([]);
+export type UseRemoteParticipants = {
+  participants: ShallowRef<Participant[]>;
+};
 
-  watch([room, options.updateOnlyOn], () => {
+export type UseRemoteParticipantsArgs = {
+  options: UseRemoteParticipantsOptions;
+};
+
+export function useRemoteParticipants(args: UseRemoteParticipantsArgs): UseRemoteParticipants {
+  const room = useEnsureRoomContext(args.options.room);
+  const participants = shallowRef<Participant[]>([]);
+
+  watch([room, args.options.updateOnlyOn], () => {
     useSubscription(
       connectedParticipantsObserver(room.value, {
-        additionalRoomEvents: options.updateOnlyOn,
+        additionalRoomEvents: args.options.updateOnlyOn,
       }).subscribe((v) => (participants.value = v)),
     );
   });
 
-  return participants as ShallowRef<Participant[]>;
+  return {
+    participants,
+  };
 }

@@ -10,7 +10,7 @@ import {
   type LocalAudioTrack,
   type RemoteAudioTrack,
 } from 'livekit-client';
-import { onBeforeMount, onWatcherCleanup, ref, watch, type ShallowRef } from 'vue';
+import { onBeforeMount, onWatcherCleanup, ref, watch, type Ref } from 'vue';
 
 export type MultiBandTrackVolumeOptions = {
   bands?: number;
@@ -32,6 +32,18 @@ export type AudioWaveformOptions = {
   barCount?: number;
   volMultiplier?: number;
   updateInterval?: number;
+};
+
+export type UseTrackVolume = {
+  volume: Ref<number>;
+};
+
+export type UseMultibandTrackVolume = {
+  frequencyBands: Ref<number[]>;
+};
+
+export type UseAudioWaveform = {
+  bars: Ref<number[]>;
 };
 
 const multibandDefaults = {
@@ -97,7 +109,7 @@ function filterData(audioData: Float32Array, numSamples: number): Float32Array {
 export function useTrackVolume(
   trackOrTrackReference?: LocalAudioTrack | RemoteAudioTrack | TrackReference,
   options: AudioAnalyserOptions = { fftSize: 32, smoothingTimeConstant: 0 },
-): ShallowRef<number> {
+): UseTrackVolume {
   const track = isTrackReference(trackOrTrackReference)
     ? <LocalAudioTrack | RemoteAudioTrack | undefined>trackOrTrackReference.publication.track
     : trackOrTrackReference;
@@ -136,13 +148,13 @@ export function useTrackVolume(
     { deep: true },
   );
 
-  return volume;
+  return { volume };
 }
 
 export function useMultibandTrackVolume(
   trackOrTrackReference?: LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder,
   options: MultiBandTrackVolumeOptions = {},
-): ShallowRef<number[]> {
+): UseMultibandTrackVolume {
   const track =
     trackOrTrackReference instanceof Track
       ? trackOrTrackReference
@@ -198,15 +210,13 @@ export function useMultibandTrackVolume(
     { deep: true },
   );
 
-  return frequencyBands;
+  return { frequencyBands };
 }
 
 export function useAudioWaveform(
   trackOrTrackReference?: LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder,
   options: AudioWaveformOptions = {},
-): {
-  bars: ShallowRef<number[]>;
-} {
+): UseAudioWaveform {
   const track =
     trackOrTrackReference instanceof Track
       ? trackOrTrackReference

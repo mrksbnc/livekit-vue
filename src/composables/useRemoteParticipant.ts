@@ -5,28 +5,34 @@ import {
   type ParticipantIdentifier,
 } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
-import type { Participant, ParticipantEvent, RemoteParticipant, Room } from 'livekit-client';
-import { computed, ref, type Ref, type ShallowRef } from 'vue';
+import type { ParticipantEvent, RemoteParticipant, Room } from 'livekit-client';
+import { computed, ref, shallowRef, type Ref } from 'vue';
 
 export type UseRemoteParticipantOptions = {
   updateOnlyOn?: ParticipantEvent[];
 };
 
-export function useRemoteParticipant(
-  identityOrIdentifier: string | ParticipantIdentifier,
-  options: UseRemoteParticipantOptions = {},
-): ShallowRef<Participant | undefined> {
+export type UseRemoteParticipantArgs = {
+  identityOrIdentifier: string | ParticipantIdentifier;
+  options: UseRemoteParticipantOptions;
+};
+
+export type UseRemoteParticipant = {
+  participant: Ref<RemoteParticipant | undefined>;
+};
+
+export function useRemoteParticipant(args: UseRemoteParticipantArgs): UseRemoteParticipant {
   const room: Ref<Room> = useEnsureRoomContext();
-  const updateOnlyOn: Ref<ParticipantEvent[]> = ref(options.updateOnlyOn ?? []);
-  const participant: Ref<RemoteParticipant | undefined> = ref(undefined);
+  const updateOnlyOn: Ref<ParticipantEvent[]> = ref(args.options.updateOnlyOn ?? []);
+  const participant: Ref<RemoteParticipant | undefined> = shallowRef(undefined);
 
   const observable = computed(() => {
-    if (typeof identityOrIdentifier === 'string') {
-      return connectedParticipantObserver(room.value, identityOrIdentifier, {
+    if (typeof args.identityOrIdentifier === 'string') {
+      return connectedParticipantObserver(room.value, args.identityOrIdentifier, {
         additionalEvents: updateOnlyOn.value,
       });
     } else {
-      return participantByIdentifierObserver(room.value, identityOrIdentifier, {
+      return participantByIdentifierObserver(room.value, args.identityOrIdentifier, {
         additionalEvents: updateOnlyOn.value,
       });
     }
@@ -38,5 +44,5 @@ export function useRemoteParticipant(
     }),
   );
 
-  return participant;
+  return { participant };
 }

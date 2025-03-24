@@ -1,17 +1,20 @@
 import { trackSyncTimeObserver, type TrackReferenceOrPlaceholder } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import { Observable } from 'rxjs';
-import { computed, onMounted, ref, watch, type ShallowRef } from 'vue';
+import { computed, onMounted, ref, watch, type Ref } from 'vue';
 
 export type UseTrackSyncTimeData = {
   timestamp: number;
   rtpTimestamp: number | undefined;
 };
 
-export function useTrackSyncTime(reference: TrackReferenceOrPlaceholder | undefined): ShallowRef<{
-  timestamp: number;
-  rtpTimestamp: number | undefined;
-}> {
+export type UseTrackSyncTime = {
+  data: Ref<UseTrackSyncTimeData>;
+};
+
+export function useTrackSyncTime(
+  reference: TrackReferenceOrPlaceholder | undefined,
+): UseTrackSyncTime {
   const observable = computed<Observable<number> | undefined>(() => {
     return reference?.publication?.track
       ? (trackSyncTimeObserver(reference?.publication.track) as unknown as Observable<number>)
@@ -43,5 +46,7 @@ export function useTrackSyncTime(reference: TrackReferenceOrPlaceholder | undefi
     }
   });
 
-  return dataRef;
+  return {
+    data: dataRef,
+  };
 }

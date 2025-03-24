@@ -7,7 +7,11 @@ import { ref, type ShallowRef } from 'vue';
 
 export type IsSpeakingObservable = Observable<boolean>;
 
-export function useIsSpeaking(participant?: Participant): ShallowRef<boolean> {
+export type UseIsSpeaking = {
+  isSpeaking: ShallowRef<boolean>;
+};
+
+export function useIsSpeaking(participant?: Participant): UseIsSpeaking {
   const p = useEnsureParticipant(participant);
 
   const isSpeaking = ref<boolean>(false);
@@ -18,5 +22,5 @@ export function useIsSpeaking(participant?: Participant): ShallowRef<boolean> {
     }),
   );
 
-  return isSpeaking;
+  return { isSpeaking };
 }

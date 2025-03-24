@@ -3,18 +3,22 @@ import { participantPermissionObserver } from '@livekit/components-core';
 import type { ParticipantPermission } from '@livekit/protocol';
 import { useSubscription } from '@vueuse/rxjs';
 import type { Participant } from 'livekit-client';
-import { computed, ref, type ShallowRef } from 'vue';
+import { computed, shallowRef, type ShallowRef } from 'vue';
 
 export type UseParticipantPermissionsOptions = {
   participant?: Participant;
 };
 
+export type UseParticipantPermissions = {
+  permission: ShallowRef<ParticipantPermission | undefined>;
+};
+
 export function useParticipantPermissions(
   options: UseParticipantPermissionsOptions = {},
-): ShallowRef<ParticipantPermission | undefined> {
+): UseParticipantPermissions {
   const p = useEnsureParticipant(options.participant);
 
-  const permission = ref<ParticipantPermission | undefined>(undefined);
+  const permission = shallowRef<ParticipantPermission | undefined>(undefined);
 
   const permissionObserver = computed(() => participantPermissionObserver(p.value));
 
@@ -24,5 +28,7 @@ export function useParticipantPermissions(
     }),
   );
 
-  return permission as ShallowRef<ParticipantPermission | undefined>;
+  return {
+    permission: permission,
+  };
 }

@@ -1,13 +1,13 @@
 import type { TrackReferenceOrPlaceholder } from '@livekit/components-core';
-import { computed, onMounted, ref, type ShallowRef } from 'vue';
+import { computed, onMounted, ref, type Ref } from 'vue';
 import { useVisualStableUpdate } from './useVisualStableUpdate';
 
-export type UsePaginationReturnType = {
-  totalPageCount: ShallowRef<number>;
-  firstItemIndex: ShallowRef<number>;
-  lastItemIndex: ShallowRef<number>;
-  tracks: ShallowRef<TrackReferenceOrPlaceholder[]>;
-  currentPage: ShallowRef<number>;
+export type UsePagination = {
+  totalPageCount: Ref<number>;
+  firstItemIndex: Ref<number>;
+  lastItemIndex: Ref<number>;
+  tracks: Ref<TrackReferenceOrPlaceholder[]>;
+  currentPage: Ref<number>;
   nextPage: () => number;
   prevPage: () => number;
   setPage: (num: number) => void;
@@ -16,7 +16,7 @@ export type UsePaginationReturnType = {
 export function usePagination(
   itemPerPage: number,
   trackReferences: TrackReferenceOrPlaceholder[],
-): UsePaginationReturnType {
+): UsePagination {
   const currentPage = ref<number>(1);
   const totalPageCount = ref(Math.max(Math.ceil(trackReferences.length / itemPerPage), 1));
   const lastItemIndex = ref(currentPage.value * itemPerPage);

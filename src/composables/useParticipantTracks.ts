@@ -3,28 +3,38 @@ import { useRoomContext } from '@/context/room.context';
 import { participantTracksObservable, type TrackReference } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import type { Participant, Track } from 'livekit-client';
-import { computed, ref, type ShallowRef } from 'vue';
+import { computed, shallowRef, type ShallowRef } from 'vue';
 
-export function useParticipantTracks(
-  sources: Track.Source[],
-  participantIdentity?: string,
-): ShallowRef<TrackReference[]> {
+export type UseParticipantTracksOptions = {
+  sources: Track.Source[];
+  participantIdentity?: string;
+};
+
+export type UseParticipantTracks = {
+  trackReferences: ShallowRef<TrackReference[]>;
+};
+
+export function useParticipantTracks(options: UseParticipantTracksOptions): UseParticipantTracks {
   const room = useRoomContext();
   const participantContext = useMaybeParticipantContext();
 
-  const trackReferences = ref<TrackReference[]>([]);
+  const trackReferences = shallowRef<TrackReference[]>([]);
 
   const p = computed<Participant | undefined>(() =>
-    participantIdentity
-      ? room?.value?.getParticipantByIdentity(participantIdentity)
+    options.participantIdentity
+      ? room?.value?.getParticipantByIdentity(options.participantIdentity)
       : participantContext?.value,
   );
 
   useSubscription(
-    participantTracksObservable(p.value ?? ({} as Participant), { sources }).subscribe((v) => {
+    participantTracksObservable(p.value ?? ({} as Participant), {
+      sources: options.sources,
+    }).subscribe((v) => {
       trackReferences.value = v;
     }),
   );
 
-  return trackReferences as ShallowRef<TrackReference[]>;
+  return {
+    trackReferences,
+  };
 }

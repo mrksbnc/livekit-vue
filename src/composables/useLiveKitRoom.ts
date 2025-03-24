@@ -3,21 +3,18 @@ import type { LiveKitRoomProps } from '@/types/livekit_room.types';
 import { roomOptionsStringifyReplacer } from '@/utils/room.utils';
 import { DisconnectReason, MediaDeviceFailure, Room, RoomEvent } from 'livekit-client';
 import {
-  computed,
   onBeforeUnmount,
   onMounted,
   onWatcherCleanup,
   ref,
+  shallowRef,
   toRefs,
   watch,
-  type HTMLAttributes,
-  type Ref,
   type ShallowRef,
 } from 'vue';
 
-export type UseLiveKitRoomReturn = {
+export type UseLiveKitRoom = {
   room: ShallowRef<Room | undefined>;
-  elementProps: ShallowRef<HTMLAttributes>;
 };
 
 const defaultRoomProps: Partial<LiveKitRoomProps> = {
@@ -26,7 +23,7 @@ const defaultRoomProps: Partial<LiveKitRoomProps> = {
   video: false,
 };
 
-export function useLiveKitRoom(props: LiveKitRoomProps): UseLiveKitRoomReturn {
+export function useLiveKitRoom(props: LiveKitRoomProps): UseLiveKitRoom {
   const {
     token,
     serverUrl,
@@ -43,20 +40,12 @@ export function useLiveKitRoom(props: LiveKitRoomProps): UseLiveKitRoomReturn {
     onMediaDeviceFailure,
     onEncryptionError,
     simulateParticipants,
-    htmlProps,
   } = toRefs({ ...defaultRoomProps, ...props });
 
-  const shouldConnect = ref(connect?.value ?? false);
-  const room = ref<Room | undefined>(passedRoom?.value ?? useRoomContext()?.value);
+  const shouldConnect = ref<boolean>(connect?.value ?? false);
+  const room = shallowRef<Room | undefined>(passedRoom?.value ?? useRoomContext()?.value);
 
-  const elementProps = computed<HTMLAttributes>(() => {
-    return {
-      ...htmlProps?.value,
-      class: 'lk-room-container',
-    };
-  });
-
-  function onSignalConnected() {
+  function onSignalConnected(): void {
     const localP = room.value?.localParticipant;
 
     console.debug('trying to publish local tracks');
@@ -79,19 +68,19 @@ export function useLiveKitRoom(props: LiveKitRoomProps): UseLiveKitRoomReturn {
     });
   }
 
-  function handleMediaDeviceError(e: Error) {
+  function handleMediaDeviceError(e: Error): void {
     const mediaDeviceFailure = MediaDeviceFailure.getFailure(e);
     onMediaDeviceFailure?.value?.(mediaDeviceFailure);
   }
-  function handleEncryptionError(e: Error) {
+  function handleEncryptionError(e: Error): void {
     onEncryptionError?.value?.(e);
   }
 
-  function handleDisconnected(reason?: DisconnectReason) {
+  function handleDisconnected(reason?: DisconnectReason): void {
     onDisconnected?.value?.(reason);
   }
 
-  function handleConnected() {
+  function handleConnected(): void {
     onConnected?.value?.();
   }
 
@@ -213,7 +202,6 @@ export function useLiveKitRoom(props: LiveKitRoomProps): UseLiveKitRoomReturn {
   });
 
   return {
-    room: room as Ref<Room | undefined>,
-    elementProps,
+    room,
   };
 }

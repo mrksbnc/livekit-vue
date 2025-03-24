@@ -1,13 +1,14 @@
 import { useEnsureLayoutContext } from '@/context/layout.context';
 import type { PinContext } from '@/context/pin.context';
 import { type PinState } from '@livekit/components-core';
-import { computed, type HTMLAttributes, type ShallowRef } from 'vue';
+import { computed, type Ref } from 'vue';
 
-export type UseClearButtonReturnType = {
-  elementProps: ShallowRef<HTMLAttributes>;
+export type UseClearPinButton = {
+  disabled: Ref<boolean>;
+  onClick: () => void;
 };
 
-export function useClearPinButton(props: HTMLAttributes): UseClearButtonReturnType {
+export function useClearPinButton(): UseClearPinButton {
   const layoutContext = useEnsureLayoutContext();
 
   const pinState = computed<PinContext>(() => {
@@ -22,20 +23,18 @@ export function useClearPinButton(props: HTMLAttributes): UseClearButtonReturnTy
     return pinState.value.dispatch;
   });
 
-  const elementProps = computed<HTMLAttributes>(() => {
-    return {
-      ...props,
-      class: 'lk-clear-pin-button',
-      disabled: !state.value?.length,
-      onClick: () => {
-        if (dispatch.value) {
-          dispatch.value({ msg: 'clear_pin' });
-        }
-      },
-    };
+  const disabled = computed<boolean>(() => {
+    return !state.value?.length;
   });
 
+  function onClick() {
+    if (dispatch.value) {
+      dispatch.value({ msg: 'clear_pin' });
+    }
+  }
+
   return {
-    elementProps,
+    disabled,
+    onClick,
   };
 }

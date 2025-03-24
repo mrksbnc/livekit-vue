@@ -2,20 +2,20 @@ import { useEnsureParticipant } from '@/context/participant.context';
 import { setupConnectionQualityIndicator } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import { ConnectionQuality, type Participant } from 'livekit-client';
-import { computed, ref, toRefs, type ShallowRef } from 'vue';
+import { computed, ref, toRefs, type Ref } from 'vue';
 
 export type ConnectionQualityIndicatorOptions = {
   participant?: Participant;
 };
 
-export type ConnectionQualityIndicatorReturnType = {
-  className: ShallowRef<string>;
-  quality: ShallowRef<ConnectionQuality>;
+export type UseConnectionQualityIndicator = {
+  className: Ref<string>;
+  quality: Ref<ConnectionQuality>;
 };
 
 export function useConnectionQualityIndicator(
   options: ConnectionQualityIndicatorOptions = {},
-): ConnectionQualityIndicatorReturnType {
+): UseConnectionQualityIndicator {
   const p = useEnsureParticipant(options.participant);
 
   const quality = ref<ConnectionQuality>(ConnectionQuality.Unknown);

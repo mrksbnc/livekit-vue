@@ -1,8 +1,12 @@
 import { useEnsureLayoutContext, type LayoutState } from '@/context/layout.context';
 import type { TrackReferenceOrPlaceholder } from '@livekit/components-core';
-import { computed, type ShallowRef } from 'vue';
+import { computed, type Ref } from 'vue';
 
-export function usePinnedTracks(context?: LayoutState): ShallowRef<TrackReferenceOrPlaceholder[]> {
+export type UsePinnedTracks = {
+  pinnedTracks: Ref<TrackReferenceOrPlaceholder[]>;
+};
+
+export function usePinnedTracks(context?: LayoutState): UsePinnedTracks {
   const layoutContext = useEnsureLayoutContext(context);
 
   const pinState = computed<TrackReferenceOrPlaceholder[]>(() => {
@@ -12,5 +16,7 @@ export function usePinnedTracks(context?: LayoutState): ShallowRef<TrackReferenc
     return [];
   });
 
-  return pinState;
+  return {
+    pinnedTracks: pinState,
+  };
 }

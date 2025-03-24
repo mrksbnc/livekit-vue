@@ -1,5 +1,5 @@
 import type { LocalParticipant, RemoteParticipant, Room, RoomEvent } from 'livekit-client';
-import { computed, type ShallowRef } from 'vue';
+import { computed, type Ref } from 'vue';
 import { useLocalParticipant } from './useLocalParticipant';
 import { useRemoteParticipants } from './useRemoteParticipants';
 
@@ -8,18 +8,19 @@ export type UseParticipantsOptions = {
   room?: Room;
 };
 
-export function useParticipants(
-  options: UseParticipantsOptions = {},
-): ShallowRef<(RemoteParticipant | LocalParticipant)[]> {
+export type UseParticipants = {
+  participants: Ref<MixedParticipantArray>;
+};
+
+export type MixedParticipantArray = (RemoteParticipant | LocalParticipant)[];
+
+export function useParticipants(options: UseParticipantsOptions = {}): UseParticipants {
   const remoteParticipants = useRemoteParticipants(options);
   const localParticipant = useLocalParticipant()?.localParticipant;
 
   const participants = computed<(RemoteParticipant | LocalParticipant)[]>(() => {
-    return [localParticipant.value, ...remoteParticipants.value] as (
-      | RemoteParticipant
-      | LocalParticipant
-    )[];
+    return [localParticipant.value, ...remoteParticipants.value] as MixedParticipantArray;
   });
 
-  return participants;
+  return { participants };
 }

@@ -4,12 +4,15 @@ import {
   type TrackReferenceOrPlaceholder,
 } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
-import { computed, ref, toRefs, type ShallowRef } from 'vue';
+import { computed, ref, toRefs, type Ref } from 'vue';
 
-export function useTrackMutedIndicator(trackRef?: TrackReferenceOrPlaceholder): {
-  isMuted: ShallowRef<boolean>;
-  className: ShallowRef<string>;
-} {
+export type UseTrackMutedIndicator = {
+  isMuted: Ref<boolean>;
+};
+
+export function useTrackMutedIndicator(
+  trackRef?: TrackReferenceOrPlaceholder,
+): UseTrackMutedIndicator {
   const trackReference = useEnsureTrackRef(trackRef);
   const isMuted = ref<boolean>(false);
 
@@ -17,7 +20,7 @@ export function useTrackMutedIndicator(trackRef?: TrackReferenceOrPlaceholder): 
     setupTrackMutedIndicator(trackReference.value),
   );
 
-  const { className, mediaMutedObserver } = toRefs(mediaTrackSetupResult.value);
+  const { mediaMutedObserver } = toRefs(mediaTrackSetupResult.value);
 
   useSubscription(
     mediaMutedObserver.value?.subscribe((muted) => {
@@ -25,5 +28,5 @@ export function useTrackMutedIndicator(trackRef?: TrackReferenceOrPlaceholder): 
     }),
   );
 
-  return { isMuted, className };
+  return { isMuted };
 }

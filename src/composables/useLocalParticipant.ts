@@ -2,29 +2,27 @@ import { useEnsureRoomContext } from '@/context/room.context';
 import { observeParticipantMedia, type ParticipantMedia } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import { LocalParticipant, TrackPublication, type Room } from 'livekit-client';
-import { ref, watch, type ShallowRef } from 'vue';
+import { ref, shallowRef, watch, type Ref, type ShallowRef } from 'vue';
 
 export type UseLocalParticipantOptions = {
   room?: Room;
 };
 
-export type UseLocalParticipantReturnType = {
-  isMicrophoneEnabled: ShallowRef<boolean>;
-  isScreenShareEnabled: ShallowRef<boolean>;
-  isCameraEnabled: ShallowRef<boolean>;
+export type UseLocalParticipant = {
+  isMicrophoneEnabled: Ref<boolean>;
+  isScreenShareEnabled: Ref<boolean>;
+  isCameraEnabled: Ref<boolean>;
   microphoneTrack: ShallowRef<TrackPublication | undefined>;
   cameraTrack: ShallowRef<TrackPublication | undefined>;
-  lastMicrophoneError: ShallowRef<Error | undefined>;
-  lastCameraError: ShallowRef<Error | undefined>;
+  lastMicrophoneError: Ref<Error | undefined>;
+  lastCameraError: Ref<Error | undefined>;
   localParticipant: ShallowRef<LocalParticipant | undefined>;
 };
 
-export function useLocalParticipant(
-  options: UseLocalParticipantOptions = {},
-): UseLocalParticipantReturnType {
+export function useLocalParticipant(options: UseLocalParticipantOptions = {}): UseLocalParticipant {
   const room = useEnsureRoomContext(options.room);
 
-  const localParticipant = ref<LocalParticipant | undefined>(room.value?.localParticipant);
+  const localParticipant = shallowRef<LocalParticipant | undefined>(room.value?.localParticipant);
   const isMicrophoneEnabled = ref(localParticipant.value?.isMicrophoneEnabled ?? false);
   const isCameraEnabled = ref(localParticipant.value?.isCameraEnabled ?? false);
   const isScreenShareEnabled = ref(localParticipant.value?.isScreenShareEnabled ?? false);
@@ -32,9 +30,9 @@ export function useLocalParticipant(
   const lastMicrophoneError = ref<Error | undefined>(localParticipant.value?.lastMicrophoneError);
   const lastCameraError = ref<Error | undefined>(localParticipant.value?.lastCameraError);
 
-  const microphoneTrack = ref<TrackPublication | undefined>(undefined);
+  const microphoneTrack = shallowRef<TrackPublication | undefined>(undefined);
 
-  const cameraTrack = ref<TrackPublication | undefined>(undefined);
+  const cameraTrack = shallowRef<TrackPublication | undefined>(undefined);
 
   function handleUpdate(media: ParticipantMedia<LocalParticipant>) {
     isCameraEnabled.value = media.isCameraEnabled;
@@ -55,10 +53,10 @@ export function useLocalParticipant(
     isMicrophoneEnabled,
     isScreenShareEnabled,
     isCameraEnabled,
-    microphoneTrack: microphoneTrack as ShallowRef<TrackPublication | undefined>,
-    cameraTrack: cameraTrack as ShallowRef<TrackPublication | undefined>,
+    microphoneTrack,
+    cameraTrack,
     lastMicrophoneError,
     lastCameraError,
-    localParticipant: localParticipant as ShallowRef<LocalParticipant | undefined>,
+    localParticipant,
   };
 }

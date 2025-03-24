@@ -8,17 +8,21 @@ import {
 } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import type { Participant, Track } from 'livekit-client';
-import { computed, ref, watch, type ShallowRef } from 'vue';
+import { computed, ref, watch, type Ref } from 'vue';
 
 export type UseIsMutedOptions = {
   participant?: Participant;
 };
 
-export function useIsMuted(trackRef: TrackReferenceOrPlaceholder): ShallowRef<boolean>;
+export type UseIsMuted = {
+  isMuted: Ref<boolean>;
+};
+
+export function useIsMuted(trackRef: TrackReferenceOrPlaceholder): UseIsMuted;
 export function useIsMuted(
   sourceOrTrackRef: TrackReferenceOrPlaceholder | Track.Source,
   options: UseIsMutedOptions = {},
-): ShallowRef<boolean> {
+): UseIsMuted {
   const passedParticipant = computed<Participant | undefined>(() =>
     typeof sourceOrTrackRef === 'string' ? options.participant : sourceOrTrackRef.participant,
   );
@@ -34,7 +38,7 @@ export function useIsMuted(
     return track;
   });
 
-  const isMuted = ref(
+  const isMuted = ref<boolean>(
     !!(
       trackRef.value.publication?.isMuted ||
       p.value.getTrackPublication(trackRef.value.source)?.isMuted
@@ -52,5 +56,5 @@ export function useIsMuted(
     },
   );
 
-  return isMuted;
+  return { isMuted };
 }

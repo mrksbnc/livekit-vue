@@ -3,7 +3,7 @@ import { participantInfoObserver } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import type { Participant } from 'livekit-client';
 import type { Observable } from 'rxjs';
-import { computed, onMounted, ref, type ShallowRef } from 'vue';
+import { computed, onMounted, ref, type Ref } from 'vue';
 
 export type UseParticipantInfoOptions = {
   participant?: Participant;
@@ -15,22 +15,19 @@ export type ParticipantInfo = {
   metadata: string | undefined;
 };
 
-export function useParticipantInfo(
-  props: UseParticipantInfoOptions = {},
-): ShallowRef<ParticipantInfo | undefined> {
+export type ParticipantInfoObservable = Observable<ParticipantInfo>;
+
+export type UseParticipantInfo = {
+  info: Ref<ParticipantInfo | undefined>;
+};
+
+export function useParticipantInfo(props: UseParticipantInfoOptions = {}): UseParticipantInfo {
   const p = useMaybeParticipantContext();
 
-  const data = ref<
-    | {
-        name: string | undefined;
-        identity: string;
-        metadata: string | undefined;
-      }
-    | undefined
-  >(undefined);
+  const data = ref<ParticipantInfo | undefined>(undefined);
 
-  const infoObserver = computed<Observable<ParticipantInfo>>(
-    () => participantInfoObserver(p?.value) as unknown as Observable<ParticipantInfo>,
+  const infoObserver = computed<ParticipantInfoObservable>(
+    () => participantInfoObserver(p?.value) as unknown as ParticipantInfoObservable,
   );
 
   useSubscription(
@@ -40,10 +37,10 @@ export function useParticipantInfo(
   );
 
   onMounted(() => {
-    if (props.participant && p) {
+    if (props.participant && p && p.value) {
       p.value = props.participant;
     }
   });
 
-  return data;
+  return { info: data };
 }

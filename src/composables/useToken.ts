@@ -1,4 +1,4 @@
-import { ref, watch, type ShallowRef } from 'vue';
+import { ref, watch, type Ref } from 'vue';
 
 export type UserInfo = {
   identity?: string;
@@ -10,11 +10,17 @@ export type UseTokenOptions = {
   userInfo?: UserInfo;
 };
 
-export function useToken(
-  tokenEndpoint: string | undefined,
-  roomName: string,
-  options: UseTokenOptions = {},
-): ShallowRef<string | undefined> {
+export type UseTokenArgs = {
+  tokenEndpoint: string;
+  roomName: string;
+  options?: UseTokenOptions;
+};
+
+export type UseToken = {
+  token: Ref<string | undefined>;
+};
+
+export function useToken({ tokenEndpoint, roomName, options = {} }: UseTokenArgs): UseToken {
   const token = ref<string | undefined>(undefined);
 
   async function fetchToken() {
@@ -36,5 +42,5 @@ export function useToken(
 
   watch([tokenEndpoint, roomName, options.userInfo], fetchToken);
 
-  return token;
+  return { token };
 }

@@ -4,20 +4,27 @@ import { encryptionStatusObservable } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import type { LocalParticipant, Participant, Room } from 'livekit-client';
 import { Observable } from 'rxjs';
-import { ref, type ShallowRef } from 'vue';
+import { ref, type Ref } from 'vue';
+
+export type EncryptedObservable = Observable<boolean>;
 
 export type UseIsEncryptedOptions = {
   room?: Room;
 };
 
-export type EncryptedObservable = Observable<boolean>;
+export type UseIsEncryptedArgs = {
+  participant?: Participant;
+  options?: UseIsEncryptedOptions;
+};
 
-export function useIsEncrypted(
-  participant?: Participant,
-  options: UseIsEncryptedOptions = {},
-): ShallowRef<boolean> {
-  const p = useEnsureParticipant(participant);
-  const room = useEnsureRoomContext(options.room);
+export type UseIsEncrypted = {
+  isEncrypted: Ref<boolean>;
+};
+
+export function useIsEncrypted(args: UseIsEncryptedArgs): UseIsEncrypted {
+  const p = useEnsureParticipant(args.participant);
+  const room = useEnsureRoomContext(args.options?.room);
+
   const isEncrypted = ref<boolean>(
     p.value.isLocal ? (p.value as LocalParticipant).isE2EEEnabled : !!p.value?.isEncrypted,
   );
@@ -28,5 +35,5 @@ export function useIsEncrypted(
     }),
   );
 
-  return isEncrypted;
+  return { isEncrypted };
 }

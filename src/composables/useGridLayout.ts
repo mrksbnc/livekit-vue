@@ -2,30 +2,35 @@ import {
   GRID_LAYOUTS,
   selectGridLayout,
   type GridLayoutDefinition,
+  type GridLayoutInfo,
 } from '@livekit/components-core';
 import { useElementSize } from '@vueuse/core';
-import { computed, watch, type Ref, type ShallowRef } from 'vue';
+import { computed, watch, type Ref } from 'vue';
 
-export type UseGridLayoutReturnType = {
-  layout: ShallowRef<GridLayoutDefinition | undefined>;
-  containerWidth: ShallowRef<number | undefined>;
-  containerHeight: ShallowRef<number | undefined>;
+export type UseGridLayoutOptions = {
+  layouts?: GridLayoutDefinition[];
+};
+
+export type UseGridLayout = {
+  layout: Ref<GridLayoutDefinition | undefined>;
+  containerWidth: Ref<number | undefined>;
+  containerHeight: Ref<number | undefined>;
 };
 
 export function useGridLayout(
   gridElement: Ref<HTMLDivElement>,
   trackCount: number,
-  options: {
-    gridLayouts?: GridLayoutDefinition[];
-  } = {},
-): UseGridLayoutReturnType {
+  options: UseGridLayoutOptions = {
+    layouts: [],
+  },
+): UseGridLayout {
   const { width, height } = useElementSize(gridElement);
 
   const gridLayouts = computed<GridLayoutDefinition[]>(() => {
-    return options.gridLayouts ?? GRID_LAYOUTS;
+    return options.layouts ?? GRID_LAYOUTS;
   });
 
-  const layout = computed(() => {
+  const layout = computed<GridLayoutInfo>(() => {
     return selectGridLayout(gridLayouts.value, trackCount, width.value, height.value);
   });
 

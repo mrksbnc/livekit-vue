@@ -1,29 +1,32 @@
 import type { DisconnectButtonProps } from '@/components/controls/buttons';
 import { useEnsureRoomContext } from '@/context/room.context';
 import { ConnectionState } from 'livekit-client';
-import { computed, shallowRef, type ShallowRef } from 'vue';
+import { computed, type Ref } from 'vue';
 import { useConnectionState } from './useConnectionState';
 
-export function useDisconnectButton(props: DisconnectButtonProps): {
+export type UseDisconnectButton = {
   onClick: () => void;
-  disabled: ShallowRef<boolean>;
-} {
-  const room = useEnsureRoomContext();
-  const connectionState = useConnectionState(room.value);
+  disabled: Ref<boolean>;
+};
 
-  function disconnect(stopTracks?: boolean) {
+export function useDisconnectButton(props: DisconnectButtonProps): UseDisconnectButton {
+  const room = useEnsureRoomContext();
+  const { connectionState } = useConnectionState(room.value);
+
+  const disabled = computed<boolean>(() => {
+    return connectionState.value === ConnectionState.Disconnected;
+  });
+
+  function onClick(): void {
+    disconnect(props.stopTracks);
+  }
+
+  function disconnect(stopTracks?: boolean): void {
     room.value.disconnect(stopTracks);
   }
 
-  const buttonProps = computed(() => {
-    return {
-      onClick: () => disconnect(props.stopTracks),
-      disabled: connectionState.value === ConnectionState.Disconnected,
-    };
-  });
-
   return {
-    onClick: buttonProps.value.onClick,
-    disabled: shallowRef(buttonProps.value.disabled),
+    onClick,
+    disabled,
   };
 }

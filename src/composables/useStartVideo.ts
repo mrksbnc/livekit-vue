@@ -2,19 +2,19 @@ import { useEnsureRoomContext } from '@/context/room.context';
 import { setupStartVideo } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
-import { computed, ref, toRefs, type HTMLAttributes, type ShallowRef } from 'vue';
+import { computed, ref, toRefs, type HTMLAttributes, type Ref } from 'vue';
 
 export type UseStartVideoProps = {
   room?: Room;
   props: HTMLAttributes;
 };
 
-export type UseStartVideoReturnType = {
-  canPlayVideo: ShallowRef<boolean>;
-  elementProps: HTMLAttributes;
+export type UseStartVideo = {
+  canPlayVideo: Ref<boolean>;
+  onClick: () => Promise<void>;
 };
 
-export function useStartVideo({ room, props }: UseStartVideoProps): UseStartVideoReturnType {
+export function useStartVideo({ room, props }: UseStartVideoProps): UseStartVideo {
   const roomEnsured = useEnsureRoomContext(room);
 
   const canPlayVideo = ref<boolean>(false);
@@ -33,14 +33,12 @@ export function useStartVideo({ room, props }: UseStartVideoProps): UseStartVide
     }),
   );
 
+  async function onClick(): Promise<void> {
+    await handleStartVideoPlayback.value(roomEnsured.value);
+  }
+
   return {
     canPlayVideo,
-    elementProps: {
-      ...props,
-      class: className.value,
-      onClick: () => {
-        handleStartVideoPlayback.value(roomEnsured.value);
-      },
-    },
+    onClick,
   };
 }

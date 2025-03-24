@@ -3,7 +3,7 @@ import { participantAttributesObserver } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import type { Participant } from 'livekit-client';
 import type { Observable } from 'rxjs';
-import { computed, ref, shallowRef, type ShallowRef } from 'vue';
+import { computed, ref, shallowRef, type Ref } from 'vue';
 
 export type UseParticipantAttributesOptions = {
   participant?: Participant;
@@ -14,9 +14,35 @@ export type AttributeObservable = Observable<{
   attributes: Readonly<Record<string, string>>;
 }>;
 
+export type UseParticipantAttribute = {
+  attribute: Ref<string | undefined>;
+};
+
+export type UseParticipantAttributes = {
+  attributes: Ref<Readonly<Record<string, string>> | undefined>;
+};
+
+export function useParticipantAttribute(
+  attributeKey: string,
+  options: UseParticipantAttributesOptions = {},
+): UseParticipantAttribute {
+  const p = useEnsureParticipant(options.participant);
+  const attribute = ref(p.value?.attributes[attributeKey]);
+
+  useSubscription(
+    participantAttributesObserver(p.value).subscribe((attr) => {
+      if (attr.changed[attributeKey] !== undefined) {
+        attribute.value = attr.attributes[attributeKey];
+      }
+    }),
+  );
+
+  return { attribute };
+}
+
 export function useParticipantAttributes(
   props: UseParticipantAttributesOptions = {},
-): ShallowRef<Readonly<Record<string, string>> | undefined> {
+): UseParticipantAttributes {
   const participantContext = useMaybeParticipantContext();
   const p = shallowRef(props.participant) ?? participantContext?.value;
 
@@ -35,23 +61,5 @@ export function useParticipantAttributes(
     }),
   );
 
-  return attributes;
-}
-
-export function useParticipantAttribute(
-  attributeKey: string,
-  options: UseParticipantAttributesOptions = {},
-): ShallowRef<string | undefined> {
-  const p = useEnsureParticipant(options.participant);
-  const attribute = ref(p.value?.attributes[attributeKey]);
-
-  useSubscription(
-    participantAttributesObserver(p.value).subscribe((attr) => {
-      if (attr.changed[attributeKey] !== undefined) {
-        attribute.value = attr.attributes[attributeKey];
-      }
-    }),
-  );
-
-  return attribute;
+  return { attributes };
 }

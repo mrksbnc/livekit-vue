@@ -1,5 +1,5 @@
 import { loadUserChoices, saveUserChoices, type LocalUserChoices } from '@livekit/components-core';
-import { ref, watch, type ShallowRef } from 'vue';
+import { ref, watch, type Ref } from 'vue';
 
 export type UsePersistentUserChoicesOptions = {
   defaults?: Partial<LocalUserChoices>;
@@ -7,8 +7,8 @@ export type UsePersistentUserChoicesOptions = {
   preventLoad?: boolean;
 };
 
-export type UsePersistentUserChoicesReturnType = {
-  userChoices: ShallowRef<LocalUserChoices>;
+export type UsePersistentUserChoices = {
+  userChoices: Ref<LocalUserChoices>;
   saveAudioInputEnabled: (enabled: boolean) => void;
   saveVideoInputEnabled: (enabled: boolean) => void;
   saveAudioInputDeviceId: (deviceId: string) => void;
@@ -18,28 +18,28 @@ export type UsePersistentUserChoicesReturnType = {
 
 export function usePersistentUserChoices(
   options: UsePersistentUserChoicesOptions = {},
-): UsePersistentUserChoicesReturnType {
+): UsePersistentUserChoices {
   const userChoices = ref<LocalUserChoices>(
     loadUserChoices(options.defaults, options.preventLoad ?? false),
   );
 
-  function saveAudioInputDeviceId(deviceId: string) {
+  function saveAudioInputDeviceId(deviceId: string): void {
     userChoices.value = { ...userChoices.value, audioDeviceId: deviceId };
   }
 
-  function saveVideoInputDeviceId(deviceId: string) {
+  function saveVideoInputDeviceId(deviceId: string): void {
     userChoices.value = { ...userChoices.value, videoDeviceId: deviceId };
   }
 
-  function saveAudioInputEnabled(enabled: boolean) {
+  function saveAudioInputEnabled(enabled: boolean): void {
     userChoices.value = { ...userChoices.value, audioEnabled: enabled };
   }
 
-  function saveVideoInputEnabled(enabled: boolean) {
+  function saveVideoInputEnabled(enabled: boolean): void {
     userChoices.value = { ...userChoices.value, videoEnabled: enabled };
   }
 
-  function saveUsername(username: string) {
+  function saveUsername(username: string): void {
     userChoices.value = { ...userChoices.value, username };
   }
 
