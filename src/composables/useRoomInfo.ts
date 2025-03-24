@@ -2,7 +2,7 @@ import { useEnsureRoomContext } from '@/context/room.context';
 import { roomInfoObserver } from '@livekit/components-core';
 import { useSubscription } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
-import { ref, toRefs, type ShallowRef } from 'vue';
+import { ref, type ShallowRef } from 'vue';
 
 export type UseRoomInfoOptions = {
   room?: Room;
@@ -26,8 +26,6 @@ export function useRoomInfo(options: UseRoomInfoOptions = {}): ShallowRef<RoomIn
       info.value = inf;
     }),
   );
-
-  const { name, metadata } = toRefs(info.value);
 
   return info;
 }

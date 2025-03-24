@@ -29,5 +29,6 @@ coverage
 
 *.tsbuildinfo
 
+components-js
 components-js/
 demo/
