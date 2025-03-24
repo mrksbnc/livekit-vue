@@ -1,8 +1,9 @@
 {
   "name": "@mrksbnc/livekit-vue",
   "version": "0.0.3",
-  "type": "module",
   "license": "MIT",
+  "author": "Bence Markus",
+  "type": "module",
   "exports": {
     ".": {
       "types": "./dist/src/index.d.ts",
@@ -22,8 +23,7 @@
   "module": "dist/livekit-vue.js",
   "types": "dist/src/index.d.ts",
   "files": [
-    "dist",
-    "src"
+    "dist"
   ],
   "scripts": {
     "dev": "vite --config vite.config.local.ts",
@@ -78,7 +78,7 @@
     "vue-tsc": "^2.2.8"
   },
   "pnpm": {
-    "ignoredBuiltDependencies": [
+    "onlyBuiltDependencies": [
       "@alloc/quick-lru",
       "@ampproject/remapping",
       "@antfu/utils",
@@ -556,7 +556,7 @@
       "yocto-queue",
       "yoctocolors"
     ],
-    "onlyBuiltDependencies": [
+    "ignoredBuiltDependencies": [
       "@alloc/quick-lru",
       "@ampproject/remapping",
       "@antfu/utils",
