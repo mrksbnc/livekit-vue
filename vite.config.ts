@@ -20,6 +20,7 @@ export default defineConfig({
   build: {
     cssCodeSplit: true,
     target: 'esnext',
+
     lib: {
       name: 'livekit-vue',
       entry: fileURLToPath(new URL('./src/index.ts', import.meta.url)),
