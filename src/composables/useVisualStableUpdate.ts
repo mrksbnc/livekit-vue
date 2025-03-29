@@ -10,7 +10,7 @@ import {
   type ShallowRef,
 } from 'vue';
 
-export type UseVisualStableUpdateOptions = {
+export type UseVisualStableUpdateProps = {
   trackReferences: TrackReferenceOrPlaceholder[] | MaybeRef<TrackReferenceOrPlaceholder[]>;
   maxItemsOnPage: number;
   customSortFunction?: (
@@ -24,25 +24,21 @@ export type UseVisualStableUpdate = {
   updatedTrackReferences: ShallowRef<TrackReferenceOrPlaceholder[]>;
 };
 
-export function useVisualStableUpdate(
-  options: UseVisualStableUpdateOptions,
-): UseVisualStableUpdate {
+export function useVisualStableUpdate(props: UseVisualStableUpdateProps): UseVisualStableUpdate {
   const lastMaxItemsOnPage = ref<number>(-1);
   const lastTrackRefs = shallowRef<TrackReferenceOrPlaceholder[]>([]);
 
   const trackReferences = computed<TrackReferenceOrPlaceholder[]>(() => {
-    return 'value' in options.trackReferences
-      ? options.trackReferences.value
-      : options.trackReferences;
+    return 'value' in props.trackReferences ? props.trackReferences.value : props.trackReferences;
   });
 
   const isLayoutChanged = computed<boolean>(() => {
-    return options.maxItemsOnPage !== lastMaxItemsOnPage.value;
+    return props.maxItemsOnPage !== lastMaxItemsOnPage.value;
   });
 
   const sortedTrackReferences = computed<TrackReferenceOrPlaceholder[]>(() => {
-    return options.customSortFunction
-      ? options.customSortFunction(trackReferences.value)
+    return props.customSortFunction
+      ? props.customSortFunction(trackReferences.value)
       : trackReferences.value;
   });
 
@@ -56,7 +52,7 @@ export function useVisualStableUpdate(
         updatedTrackReferences.value = updatePages(
           lastTrackRefs.value,
           sortedTrackReferences.value,
-          options.maxItemsOnPage,
+          props.maxItemsOnPage,
         );
       } catch (error) {
         console.error('Error while running updatePages(): ', error);
@@ -68,7 +64,7 @@ export function useVisualStableUpdate(
     } else {
       lastTrackRefs.value = updatedTrackReferences.value;
     }
-    lastMaxItemsOnPage.value = options.maxItemsOnPage;
+    lastMaxItemsOnPage.value = props.maxItemsOnPage;
   }
 
   watchEffect(() => {
@@ -77,7 +73,7 @@ export function useVisualStableUpdate(
     }
   });
 
-  watch([() => options.maxItemsOnPage, trackReferences], () => {
+  watch([() => props.maxItemsOnPage, trackReferences], () => {
     updateTrackReferences();
   });
 

@@ -9,10 +9,12 @@ export type UseTrackMutedIndicator = {
   isMuted: Ref<boolean>;
 };
 
-export function useTrackMutedIndicator(
-  trackRef?: TrackReferenceOrPlaceholder,
-): UseTrackMutedIndicator {
-  const trackReference = useEnsureTrackRef(trackRef);
+export type UseTrackMutedIndicatorProps = {
+  trackRef: TrackReferenceOrPlaceholder;
+};
+
+export function useTrackMutedIndicator(props: UseTrackMutedIndicatorProps): UseTrackMutedIndicator {
+  const trackReference = useEnsureTrackRef(props.trackRef);
 
   const isMuted = ref<boolean>(
     !!(

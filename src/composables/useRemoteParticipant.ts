@@ -11,14 +11,16 @@ export type UseRemoteParticipantOptions = {
   updateOnlyOn?: ParticipantEvent[];
 };
 
+export type UseRemoteParticipantProps = {
+  identityOrIdentifier: string | ParticipantIdentifier;
+  options: UseRemoteParticipantOptions;
+};
+
 export type UseRemoteParticipant = {
   participant: Ref<RemoteParticipant | undefined>;
 };
 
-export function useRemoteParticipant(
-  identityOrIdentifier: string | ParticipantIdentifier,
-  options: UseRemoteParticipantOptions = {},
-): UseRemoteParticipant {
+export function useRemoteParticipant(props: UseRemoteParticipantProps): UseRemoteParticipant {
   const room = useEnsureRoomContext();
   const participant = shallowRef<RemoteParticipant | undefined>(undefined);
 
@@ -31,13 +33,13 @@ export function useRemoteParticipant(
       return null;
     }
 
-    const additionalEvents = options.updateOnlyOn || [];
+    const additionalEvents = props.options.updateOnlyOn || [];
 
-    return typeof identityOrIdentifier === 'string'
-      ? connectedParticipantObserver(room.value, identityOrIdentifier, {
+    return typeof props.identityOrIdentifier === 'string'
+      ? connectedParticipantObserver(room.value, props.identityOrIdentifier, {
           additionalEvents,
         })
-      : participantByIdentifierObserver(room.value, identityOrIdentifier, {
+      : participantByIdentifierObserver(room.value, props.identityOrIdentifier, {
           additionalEvents,
         });
   });

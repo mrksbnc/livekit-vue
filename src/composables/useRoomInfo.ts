@@ -3,7 +3,7 @@ import { roomInfoObserver } from '@livekit/components-core';
 import type { Room } from 'livekit-client';
 import { ref, watchEffect, type Ref } from 'vue';
 
-export type UseRoomInfoOptions = {
+export type UseRoomInfoProps = {
   room?: Room;
 };
 
@@ -16,11 +16,11 @@ export type UseRoomInfo = {
   info: Ref<RoomInfo>;
 };
 
-export function useRoomInfo(options: UseRoomInfoOptions = {}): UseRoomInfo {
-  const room = useEnsureRoomContext(options.room);
+export function useRoomInfo(props: UseRoomInfoProps = {}): UseRoomInfo {
+  const room = useEnsureRoomContext(props.room);
 
   const info = ref<RoomInfo>({
-    name: room.value?.name || '',
+    name: room.value?.name ?? '',
     metadata: room.value?.metadata,
   });
 

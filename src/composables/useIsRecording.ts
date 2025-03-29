@@ -8,10 +8,14 @@ export type UseIsRecording = {
   isRecording: Ref<boolean>;
 };
 
-export function useIsRecording(room?: Room): UseIsRecording {
-  const r = useEnsureRoomContext(room);
+export type UseIsRecordingProps = {
+  room?: Room;
+};
 
-  const { connectionState } = useConnectionState({ room });
+export function useIsRecording(props: UseIsRecordingProps): UseIsRecording {
+  const r = useEnsureRoomContext(props.room);
+
+  const { connectionState } = useConnectionState({ room: r.value });
 
   const isRecording = ref<boolean>(r.value.isRecording || false);
 

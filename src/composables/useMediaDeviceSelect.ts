@@ -3,7 +3,7 @@ import { createMediaDeviceObserver, setupDeviceSelector } from '@livekit/compone
 import { Room, type LocalAudioTrack, type LocalVideoTrack } from 'livekit-client';
 import { computed, ref, shallowRef, watchEffect, type Ref } from 'vue';
 
-export type UseMediaDeviceSelectOptions = {
+export type UseMediaDeviceSelectProps = {
   kind: MediaDeviceKind;
   room?: Room;
   track?: LocalAudioTrack | LocalVideoTrack;
@@ -26,13 +26,13 @@ export type UseMediaDeviceSelect = {
   setActiveMediaDevice: (deviceId: string) => void;
 };
 
-export function useMediaDeviceSelect(options: UseMediaDeviceSelectOptions): UseMediaDeviceSelect {
-  const { kind, track, requestPermissions, onError } = options;
+export function useMediaDeviceSelect(props: UseMediaDeviceSelectProps): UseMediaDeviceSelect {
+  const { kind, track, requestPermissions, onError } = props;
   const roomContext = useMaybeRoomContext();
 
   const devices = shallowRef<MediaDeviceInfo[]>([]);
 
-  const room = computed<Room>(() => options.room ?? roomContext?.value ?? new Room());
+  const room = computed<Room>(() => props.room ?? roomContext?.value ?? new Room());
 
   const activeDeviceId = ref<string | undefined>(room.value?.getActiveDevice(kind) ?? 'default');
 

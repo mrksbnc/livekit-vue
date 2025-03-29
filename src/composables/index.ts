@@ -1,75 +1,106 @@
+export { useAudioPlayback, type UseAudioPlayback } from './useAudioPlayback';
 export {
-  useAudioPlayback,
-  type AudioPlaybackObservable,
-  type UseAudioPlayback,
-} from './useAudioPlayback';
-export { useClearPinButton, type UseClearPinButton } from './useClearPinButton';
+  useClearPinButton,
+  type ClearPinButtonProps,
+  type UseClearPinButton,
+} from './useClearPinButton';
 export {
   useConnectionQualityIndicator,
-  type ConnectionQualityIndicatorOptions,
+  type ConnectionQualityIndicatorProps,
   type UseConnectionQualityIndicator,
 } from './useConnectionQualityIndicator';
-export { useConnectionState, type UseConnectionState } from './useConnectionState';
 export {
-  useDataChannel,
-  type MessageHandler,
-  type MessagePayload,
-  type UseDataChannel,
-} from './useDataChannel';
-export { useDisconnectButton, type UseDisconnectButton } from './useDisconnectButton';
-export { FacingMode, useFacingMode, type UseFacingMode } from './useFacingMode';
+  useConnectionState,
+  type ConnectionStateProps,
+  type UseConnectionState,
+} from './useConnectionState';
+export {
+  useConnectionStatus,
+  type ConnectionStatusProps,
+  type UseConnectionStatus,
+} from './useConnectionStatus';
+export { useDataChannel, type UseDataChannel, type UseDataChannelProps } from './useDataChannel';
+export {
+  useDisconnectButton,
+  type DisconnectButtonProps,
+  type UseDisconnectButton,
+} from './useDisconnectButton';
+export {
+  FacingMode,
+  useFacingMode,
+  type FacingModeProps,
+  type UseFacingMode,
+} from './useFacingMode';
 export {
   useFocusToggle,
   type FocusToggleAttributes,
+  type FocusToggleProps,
   type UseFocusToggle,
-  type UseFocusToggleProps,
 } from './useFocusToggle';
-export { useGridLayout, type UseGridLayout, type UseGridLayoutOptions } from './useGridLayout';
-export {
-  useIsEncrypted,
-  type EncryptedObservable,
-  type UseIsEncrypted,
-  type UseIsEncryptedArgs,
-  type UseIsEncryptedOptions,
-} from './useIsEncrypted';
-export { useIsMuted, type UseIsMuted, type UseIsMutedOptions } from './useIsMuted';
-export {
-  useIsRecording,
-  type UseIsRecording,
-  type UseIsRecordingObservable,
-} from './useIsRecording';
-export { useIsSpeaking, type IsSpeakingObservable, type UseIsSpeaking } from './useIsSpeaking';
-export { useLiveKitRoom, type UseLiveKitRoom } from './useLiveKitRoom';
+export { useGridLayout, type UseGridLayout, type UseGridLayoutProps } from './useGridLayout';
+export { useIsEncrypted, type UseIsEncrypted, type UseIsEncryptedProps } from './useIsEncrypted';
+export { useIsMuted, type UseIsMuted, type UseIsMutedProps } from './useIsMuted';
+export { useIsRecording, type UseIsRecording, type UseIsRecordingProps } from './useIsRecording';
+export { useIsSpeaking, type UseIsSpeaking, type UseIsSpeakingProps } from './useIsSpeaking';
+export { ConnectionState, useLiveKitRoom, type UseLiveKitRoom } from './useLiveKitRoom';
 export {
   useLocalParticipant,
   type UseLocalParticipant,
-  type UseLocalParticipantOptions,
+  type UseLocalParticipantProps,
 } from './useLocalParticipant';
+export {
+  useLocalParticipantPermissions,
+  type UseLocalParticipantPermissions,
+  type UseLocalParticipantPermissionsOptions,
+  type UseLocalParticipantPermissionsProps,
+} from './useLocalParticipantPermissions';
+export {
+  useMediaDevices,
+  type UseMediaDevices,
+  type UseMediaDevicesProps,
+} from './useMediaDevices';
+export {
+  useMediaDeviceSelect,
+  type UseMediaDeviceSelect,
+  type UseMediaDeviceSelectProps,
+} from './useMediaDeviceSelect';
+export {
+  TrackOrientation,
+  useMediaTrackBySourceOrName,
+  type MediaTrackAttributes,
+  type UseMediaTrackBySourceOrName,
+  type UseMediaTrackBySourceOrNameProps,
+  type UseMediaTrackOptions,
+} from './useMediaTrackBySourceOrName';
+export {
+  PaginationDirection,
+  usePagination,
+  type UsePagination,
+  type UsePaginationOptions,
+} from './usePagination';
 export {
   useParticipantAttribute,
   useParticipantAttributes,
-  type AttributeObservable,
   type UseParticipantAttribute,
   type UseParticipantAttributes,
-  type UseParticipantAttributesOptions,
+  type UseParticipantAttributesProps,
 } from './useParticipantAttributes';
 export {
   useParticipantInfo,
   type ParticipantInfo,
-  type ParticipantInfoObservable,
   type UseParticipantInfo,
-  type UseParticipantInfoOptions,
+  type UseParticipantInfoProps,
 } from './useParticipantInfo';
 export {
   useParticipantPermissions,
   type UseParticipantPermissions,
-  type UseParticipantPermissionsOptions,
+  type UseParticipantPermissionsProps,
 } from './useParticipantPermissions';
 export {
   useParticipants,
   type MixedParticipantArray,
   type UseParticipants,
-  type UseParticipantsOptions,
+  type UseParticipantsProps,
 } from './useParticipants';
 export {
   useParticipantTile,
@@ -80,28 +111,40 @@ export {
 export {
   useParticipantTracks,
   type UseParticipantTracks,
-  type UseParticipantTracksOptions,
+  type UseParticipantTracksProps,
 } from './useParticipantTracks';
 export {
   usePersistentUserChoices,
   type UsePersistentUserChoices,
-  type UsePersistentUserChoicesOptions,
+  type UsePersistentUserChoicesProps,
 } from './usePersistentUserChoices';
-export { usePinnedTracks, type UsePinnedTracks } from './usePinnedTracks';
+export {
+  usePinnedTracks,
+  type UsePinnedTracks,
+  type UsePinnedTracksProps,
+} from './usePinnedTracks';
 export {
   useRemoteParticipant,
   type UseRemoteParticipant,
-  type UseRemoteParticipantArgs,
   type UseRemoteParticipantOptions,
+  type UseRemoteParticipantProps,
 } from './useRemoteParticipant';
 export {
   useRemoteParticipants,
   type UseRemoteParticipants,
-  type UseRemoteParticipantsArgs,
-  type UseRemoteParticipantsOptions,
+  type UseRemoteParticipantsProps,
 } from './useRemoteParticipants';
-export { useRoomInfo, type RoomInfo, type UseRoomInfoOptions } from './useRoomInfo';
-export { useSortedParticipants, type UseSortedParticipants } from './useSortedParticipants';
+export { useRoomInfo, type RoomInfo, type UseRoomInfo, type UseRoomInfoProps } from './useRoomInfo';
+export {
+  useSettingsToggle,
+  type SettingsToggleAttributes,
+  type UseSettingsToggle,
+} from './useSettingsToggle';
+export {
+  useSortedParticipants,
+  type UseSortedParticipants,
+  type UseSortedParticipantsProps,
+} from './useSortedParticipants';
 export { useSpeakingParticipants, type UseSpeakingParticipants } from './useSpeakingParticipants';
 export { useStartAudio, type UseStartAudio, type UseStartAudioProps } from './useStartAudio';
 export { useStartVideo, type UseStartVideo, type UseStartVideoProps } from './useStartVideo';
@@ -110,18 +153,25 @@ export {
   type UseToken,
   type UseTokenArgs,
   type UseTokenOptions,
+  type UseTokenProps,
   type UserInfo,
 } from './useToken';
-export { useTrack, type UseTrack } from './useTrack';
-export { useTrackByName, type UseTrackByName } from './useTrackByName';
-export { useTrackMutedIndicator, type UseTrackMutedIndicator } from './useTrackMutedIndicator';
+export { useTrack, type UseTrack, type UseTrackProps } from './useTrack';
+export { useTrackByName, type UseTrackByName, type UseTrackByNameProps } from './useTrackByName';
 export {
-  useTrackRefBySourceOrName,
+  useTrackMutedIndicator,
+  type UseTrackMutedIndicator,
+  type UseTrackMutedIndicatorProps,
+} from './useTrackMutedIndicator';
+export {
+  useTrackRefBySource,
   type UseTrackRefBySourceOrName,
-} from './useTrackRefBySourceOrName';
+  type UseTrackRefBySourceOrNameProps,
+} from './useTrackRefBySource';
 export {
   requiredPlaceholders,
   useTracks,
+  type RequiredPlaceholdersProps,
   type UseTracks,
   type UseTracksOptions,
 } from './useTracks';
@@ -129,15 +179,21 @@ export {
   useTrackSyncTime,
   type UseTrackSyncTime,
   type UseTrackSyncTimeData,
+  type UseTrackSyncTimeProps,
 } from './useTrackSyncTime';
 export {
   useTrackToggle,
-  type StateObserver,
   type ToggleButtonAttributes,
   type ToggleFunction,
   type UseTrackToggle,
   type UseTrackToggleProps,
 } from './useTrackToggle';
+export {
+  useTrackTranscription,
+  type TrackTranscriptionOptions,
+  type UseTrackTranscription,
+  type UseTrackTranscriptionProps,
+} from './useTrackTranscription';
 export {
   useAudioWaveform,
   useMultibandTrackVolume,
@@ -145,12 +201,14 @@ export {
   type AudioWaveformOptions,
   type MultiBandTrackVolumeOptions,
   type UseAudioWaveform,
+  type UseAudioWaveformProps,
   type UseMultibandTrackVolume,
+  type UseMultibandTrackVolumeProps,
   type UseTrackVolume,
+  type UseTrackVolumeProps,
 } from './useTrackVolume';
 export {
   useVisualStableUpdate,
   type UseVisualStableUpdate,
-  type UseVisualStableUpdateArgs,
-  type UseVisualStableUpdateOptions,
+  type UseVisualStableUpdateProps,
 } from './useVisualStableUpdate';

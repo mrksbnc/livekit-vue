@@ -40,12 +40,16 @@ export type UseMediaTrackBySourceOrName = {
   attributes: Ref<MediaTrackAttributes>;
 };
 
+export type UseMediaTrackBySourceOrNameProps = {
+  observerOptions: TrackIdentifier;
+  options: UseMediaTrackOptions;
+};
+
 export function useMediaTrackBySourceOrName(
-  observerOptions: TrackIdentifier,
-  options: UseMediaTrackOptions = {},
+  props: UseMediaTrackBySourceOrNameProps,
 ): UseMediaTrackBySourceOrName {
   const publication = shallowRef<TrackPublication | undefined>(
-    getTrackByIdentifier(observerOptions),
+    getTrackByIdentifier(props.observerOptions),
   );
   const isMuted = ref<boolean>(publication.value?.isMuted ?? false);
   const isSubscribed = ref<boolean>(publication.value?.isSubscribed ?? false);
@@ -54,17 +58,17 @@ export function useMediaTrackBySourceOrName(
   const previousElement = ref<HTMLMediaElement | null>(null);
 
   const deps = computed<(string | false | undefined)[]>(() => [
-    observerOptions.participant.sid ?? observerOptions.participant.identity,
-    observerOptions.source,
-    isTrackReference(observerOptions) && observerOptions.publication.trackSid,
+    props.observerOptions.participant.sid ?? props.observerOptions.participant.identity,
+    props.observerOptions.source,
+    isTrackReference(props.observerOptions) && props.observerOptions.publication.trackSid,
   ]);
 
   const mediaTrack = computed<ReturnType<typeof setupMediaTrack>>(() =>
-    setupMediaTrack(observerOptions),
+    setupMediaTrack(props.observerOptions),
   );
 
   const attributes = computed<MediaTrackAttributes>(() => ({
-    'data-lk-local-participant': observerOptions.participant.isLocal,
+    'data-lk-local-participant': props.observerOptions.participant.isLocal,
     'data-lk-source': publication.value?.source ?? Track.Source.Unknown,
     'data-lk-orientation':
       publication.value?.kind === 'video' ? orientation.value : TrackOrientation.Unknown,
@@ -91,7 +95,7 @@ export function useMediaTrackBySourceOrName(
 
   watchEffect((onCleanup) => {
     const currentTrack = track.value;
-    const element = options.element ?? null;
+    const element = props.options.element ?? null;
 
     if (currentTrack) {
       if (previousElement.value) {
@@ -102,7 +106,10 @@ export function useMediaTrackBySourceOrName(
         }
       }
 
-      if (element && !(observerOptions.participant.isLocal && currentTrack.kind === 'audio')) {
+      if (
+        element &&
+        !(props.observerOptions.participant.isLocal && currentTrack.kind === 'audio')
+      ) {
         currentTrack.attach(element);
       }
     }

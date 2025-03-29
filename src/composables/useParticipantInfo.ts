@@ -3,7 +3,7 @@ import { participantInfoObserver } from '@livekit/components-core';
 import type { Participant } from 'livekit-client';
 import { ref, shallowRef, watchEffect, type Ref } from 'vue';
 
-export type UseParticipantInfoOptions = {
+export type UseParticipantInfoProps = {
   participant?: Participant;
 };
 
@@ -17,7 +17,7 @@ export type UseParticipantInfo = {
   info: Ref<ParticipantInfo | undefined>;
 };
 
-export function useParticipantInfo(props: UseParticipantInfoOptions = {}): UseParticipantInfo {
+export function useParticipantInfo(props: UseParticipantInfoProps = {}): UseParticipantInfo {
   const contextParticipant = useMaybeParticipantContext();
   const participant = props.participant ? shallowRef(props.participant) : contextParticipant;
 

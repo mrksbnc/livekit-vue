@@ -14,13 +14,13 @@ export type UseFacingMode = {
   facingMode: ComputedRef<FacingMode>;
 };
 
-export type FacingModeOptions = {
+export type FacingModeProps = {
   trackReference: TrackReferenceOrPlaceholder;
 };
 
-export function useFacingMode(options: FacingModeOptions): UseFacingMode {
+export function useFacingMode(props: FacingModeProps): UseFacingMode {
   const facingMode = computed<FacingMode>(() => {
-    const { trackReference } = options;
+    const { trackReference } = props;
 
     if (trackReference.publication instanceof LocalTrackPublication) {
       const localTrack = trackReference.publication.track;

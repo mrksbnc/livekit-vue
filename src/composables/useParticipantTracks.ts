@@ -4,23 +4,24 @@ import { participantTracksObservable, type TrackReference } from '@livekit/compo
 import type { Participant, Track } from 'livekit-client';
 import { computed, shallowRef, watchEffect, type ShallowRef } from 'vue';
 
-export type UseParticipantTracksOptions = {
+export type UseParticipantTracksProps = {
   sources: Track.Source[];
   participantIdentity?: string;
+  participant?: Participant;
 };
 
 export type UseParticipantTracks = {
   trackReferences: ShallowRef<TrackReference[]>;
 };
 
-export function useParticipantTracks(options: UseParticipantTracksOptions): UseParticipantTracks {
+export function useParticipantTracks(props: UseParticipantTracksProps): UseParticipantTracks {
   const room = useRoomContext();
   const participantContext = useMaybeParticipantContext();
   const trackReferences = shallowRef<TrackReference[]>([]);
 
   const participant = computed<Participant | undefined>(() => {
-    if (options.participantIdentity && room?.value) {
-      return room.value.getParticipantByIdentity(options.participantIdentity);
+    if (props.participantIdentity && room?.value) {
+      return room.value.getParticipantByIdentity(props.participantIdentity);
     }
     return participantContext?.value;
   });
@@ -32,7 +33,7 @@ export function useParticipantTracks(options: UseParticipantTracksOptions): UseP
     }
 
     const observable = participantTracksObservable(participant.value, {
-      sources: options.sources,
+      sources: props.sources,
     });
 
     const subscription = observable.subscribe({

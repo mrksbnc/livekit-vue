@@ -3,7 +3,7 @@ import { observeParticipantMedia, type ParticipantMedia } from '@livekit/compone
 import { LocalParticipant, TrackPublication, type Room } from 'livekit-client';
 import { ref, shallowRef, watchEffect, type Ref, type ShallowRef } from 'vue';
 
-export type UseLocalParticipantOptions = {
+export type UseLocalParticipantProps = {
   room?: Room;
 };
 
@@ -18,8 +18,8 @@ export type UseLocalParticipant = {
   localParticipant: ShallowRef<LocalParticipant | undefined>;
 };
 
-export function useLocalParticipant(options: UseLocalParticipantOptions = {}): UseLocalParticipant {
-  const room = useEnsureRoomContext(options.room);
+export function useLocalParticipant(props: UseLocalParticipantProps = {}): UseLocalParticipant {
+  const room = useEnsureRoomContext(props.room);
 
   const localParticipant = shallowRef<LocalParticipant | undefined>(room.value?.localParticipant);
   const isMicrophoneEnabled = ref<boolean>(localParticipant.value?.isMicrophoneEnabled ?? false);

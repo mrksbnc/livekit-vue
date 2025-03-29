@@ -7,8 +7,12 @@ export type UseIsSpeaking = {
   isSpeaking: Ref<boolean>;
 };
 
-export function useIsSpeaking(participant?: Participant): UseIsSpeaking {
-  const p = useEnsureParticipant(participant);
+export type UseIsSpeakingProps = {
+  participant: Participant;
+};
+
+export function useIsSpeaking(props: UseIsSpeakingProps): UseIsSpeaking {
+  const p = useEnsureParticipant(props.participant);
 
   const isSpeaking = ref<boolean>(p.value.isSpeaking || false);
 

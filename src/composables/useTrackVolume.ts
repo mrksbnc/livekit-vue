@@ -46,6 +46,25 @@ export type UseAudioWaveform = {
   bars: Ref<number[]>;
 };
 
+export type UseTrackVolumeProps = {
+  trackOrTrackReference?: MaybeRef<LocalAudioTrack | RemoteAudioTrack | TrackReference | undefined>;
+  options?: AudioAnalyserOptions;
+};
+
+export type UseMultibandTrackVolumeProps = {
+  trackOrTrackReference?: MaybeRef<
+    LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder | undefined
+  >;
+  options?: MultiBandTrackVolumeOptions;
+};
+
+export type UseAudioWaveformProps = {
+  trackOrTrackReference?: MaybeRef<
+    LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder | undefined
+  >;
+  options?: AudioWaveformOptions;
+};
+
 const multibandDefaults = {
   bands: 5,
   loPass: 100,
@@ -105,19 +124,18 @@ function filterData(audioData: Float32Array, numSamples: number): Float32Array {
   return filteredData;
 }
 
-export function useTrackVolume(
-  trackOrTrackReference?: MaybeRef<LocalAudioTrack | RemoteAudioTrack | TrackReference | undefined>,
-  options: AudioAnalyserOptions = { fftSize: 32, smoothingTimeConstant: 0 },
-): UseTrackVolume {
+export function useTrackVolume(props: UseTrackVolumeProps): UseTrackVolume {
   const volume = ref<number>(0);
 
   const track = computed<LocalAudioTrack | RemoteAudioTrack | undefined>(() => {
-    if (!trackOrTrackReference) {
+    if (!props.trackOrTrackReference) {
       return undefined;
     }
 
     const input =
-      'value' in trackOrTrackReference ? trackOrTrackReference.value : trackOrTrackReference;
+      'value' in props.trackOrTrackReference
+        ? props.trackOrTrackReference.value
+        : props.trackOrTrackReference;
 
     if (!input) {
       return undefined;
@@ -135,7 +153,7 @@ export function useTrackVolume(
     }
 
     try {
-      const { cleanup, analyser } = createAudioAnalyser(currentTrack, options);
+      const { cleanup, analyser } = createAudioAnalyser(currentTrack, props.options);
 
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
@@ -169,19 +187,18 @@ export function useTrackVolume(
 }
 
 export function useMultibandTrackVolume(
-  trackOrTrackReference?: MaybeRef<
-    LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder | undefined
-  >,
-  options: MultiBandTrackVolumeOptions = {},
+  props: UseMultibandTrackVolumeProps,
 ): UseMultibandTrackVolume {
-  const opts = { ...multibandDefaults, ...options };
+  const opts = { ...multibandDefaults, ...props.options };
   const frequencyBands = ref<number[]>(Array.from({ length: opts.bands }, () => 0));
 
   const track = computed<LocalAudioTrack | RemoteAudioTrack | undefined>(() => {
-    if (!trackOrTrackReference) return undefined;
+    if (!props.trackOrTrackReference) return undefined;
 
     const input =
-      'value' in trackOrTrackReference ? trackOrTrackReference.value : trackOrTrackReference;
+      'value' in props.trackOrTrackReference
+        ? props.trackOrTrackReference.value
+        : props.trackOrTrackReference;
     return input instanceof Track
       ? input
       : (input?.publication?.track as LocalAudioTrack | RemoteAudioTrack | undefined);
@@ -209,7 +226,7 @@ export function useMultibandTrackVolume(
             frequencies[i] = dataArray[i];
           }
 
-          frequencies = frequencies.slice(options.loPass, options.hiPass);
+          frequencies = frequencies.slice(opts.loPass, opts.hiPass);
 
           const chunks: Array<number> = [];
           const normalizedFrequencies = normalizeFrequencies(frequencies);
@@ -243,13 +260,8 @@ export function useMultibandTrackVolume(
   return { frequencyBands };
 }
 
-export function useAudioWaveform(
-  trackOrTrackReference?: MaybeRef<
-    LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder | undefined
-  >,
-  options: AudioWaveformOptions = {},
-): UseAudioWaveform {
-  const opts = { ...waveformDefaults, ...options };
+export function useAudioWaveform(props: UseAudioWaveformProps): UseAudioWaveform {
+  const opts = { ...waveformDefaults, ...props.options };
 
   const aggregateWave = ref<Float32Array>(new Float32Array());
   const timeRef = ref<number>(performance.now());
@@ -257,10 +269,12 @@ export function useAudioWaveform(
   const bars = ref<number[]>([]);
 
   const track = computed<LocalAudioTrack | RemoteAudioTrack | undefined>(() => {
-    if (!trackOrTrackReference) return undefined;
+    if (!props.trackOrTrackReference) return undefined;
 
     const input =
-      'value' in trackOrTrackReference ? trackOrTrackReference.value : trackOrTrackReference;
+      'value' in props.trackOrTrackReference
+        ? props.trackOrTrackReference.value
+        : props.trackOrTrackReference;
     return input instanceof Track
       ? input
       : (input?.publication?.track as LocalAudioTrack | RemoteAudioTrack | undefined);

@@ -1,7 +1,7 @@
 import { createMediaDeviceObserver } from '@livekit/components-core';
 import { ref, shallowRef, watchEffect, type Ref } from 'vue';
 
-export type UseMediaDevicesOptions = {
+export type UseMediaDevicesProps = {
   kind: MediaDeviceKind;
   onError?: (e: Error) => void;
   requestPermissions?: boolean;
@@ -13,8 +13,8 @@ export type UseMediaDevices = {
   requestPermission: (kind: 'audio' | 'video' | 'both') => Promise<boolean>;
 };
 
-export function useMediaDevices(options: UseMediaDevicesOptions): UseMediaDevices {
-  const { kind, onError, requestPermissions = false } = options;
+export function useMediaDevices(props: UseMediaDevicesProps): UseMediaDevices {
+  const { kind, onError, requestPermissions = false } = props;
 
   const devices = shallowRef<MediaDeviceInfo[]>([]);
 

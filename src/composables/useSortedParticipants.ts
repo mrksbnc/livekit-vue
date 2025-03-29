@@ -7,22 +7,24 @@ export type UseSortedParticipants = {
   sortedParticipants: ShallowRef<Participant[]>;
 };
 
-export function useSortedParticipants(
-  participants: Array<Participant> = [],
-): UseSortedParticipants {
+export type UseSortedParticipantsProps = {
+  participants: Participant[];
+};
+
+export function useSortedParticipants(props: UseSortedParticipantsProps): UseSortedParticipants {
   const { activeSpeakers } = useSpeakingParticipants();
 
   const sortedParticipants = shallowRef<Participant[]>(
-    sortParticipants([...participants, ...activeSpeakers.value]),
+    sortParticipants([...props.participants, ...activeSpeakers.value]),
   );
 
   watchEffect(() => {
-    if (!participants || participants.length === 0) {
+    if (!props.participants || props.participants.length === 0) {
       sortedParticipants.value = [];
       return;
     }
 
-    sortedParticipants.value = sortParticipants(participants);
+    sortedParticipants.value = sortParticipants(props.participants);
   });
 
   return { sortedParticipants };

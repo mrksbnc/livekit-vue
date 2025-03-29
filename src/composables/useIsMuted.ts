@@ -8,28 +8,28 @@ import {
 import type { Participant, Track } from 'livekit-client';
 import { computed, ref, watchEffect, type Ref } from 'vue';
 
-export type UseIsMutedOptions = {
+export type UseIsMutedProps = {
   participant?: Participant;
+  sourceOrTrackRef: TrackReferenceOrPlaceholder | Track.Source;
 };
 
 export type UseIsMuted = {
   isMuted: Ref<boolean>;
 };
 
-export function useIsMuted(trackRef: TrackReferenceOrPlaceholder): UseIsMuted;
-export function useIsMuted(
-  sourceOrTrackRef: TrackReferenceOrPlaceholder | Track.Source,
-  options: UseIsMutedOptions = {},
-): UseIsMuted {
+export function useIsMuted(props: UseIsMutedProps): UseIsMuted;
+export function useIsMuted(props: UseIsMutedProps): UseIsMuted {
   const passedParticipant =
-    typeof sourceOrTrackRef === 'string' ? options.participant : sourceOrTrackRef.participant;
+    typeof props.sourceOrTrackRef === 'string'
+      ? props.participant
+      : props.sourceOrTrackRef.participant;
 
   const p = useEnsureParticipant(passedParticipant);
 
   const trackReference = computed<TrackReference | TrackReferencePlaceholder>(() => {
-    return typeof sourceOrTrackRef === 'string'
-      ? { participant: p.value, source: sourceOrTrackRef }
-      : sourceOrTrackRef;
+    return typeof props.sourceOrTrackRef === 'string'
+      ? { participant: p.value, source: props.sourceOrTrackRef }
+      : props.sourceOrTrackRef;
   });
 
   const isMuted = ref<boolean>(

@@ -4,7 +4,7 @@ import type { ParticipantPermission } from '@livekit/protocol';
 import type { Participant } from 'livekit-client';
 import { shallowRef, watchEffect, type ShallowRef } from 'vue';
 
-export type UseParticipantPermissionsOptions = {
+export type UseParticipantPermissionsProps = {
   participant?: Participant;
 };
 
@@ -13,9 +13,9 @@ export type UseParticipantPermissions = {
 };
 
 export function useParticipantPermissions(
-  options: UseParticipantPermissionsOptions = {},
+  props: UseParticipantPermissionsProps = {},
 ): UseParticipantPermissions {
-  const participant = useEnsureParticipant(options.participant);
+  const participant = useEnsureParticipant(props.participant);
   const permissions = shallowRef<ParticipantPermission | undefined>(participant.value?.permissions);
 
   watchEffect((onCleanup) => {

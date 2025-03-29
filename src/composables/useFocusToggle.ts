@@ -7,7 +7,7 @@ export type FocusToggleAttributes = {
   'data-lk-toggle-focused'?: boolean;
 };
 
-export type FocusToggleOptions = {
+export type FocusToggleProps = {
   trackRef?: TrackReferenceOrPlaceholder;
 };
 
@@ -17,8 +17,8 @@ export type UseFocusToggle = {
   onClick: () => void;
 };
 
-export function useFocusToggle(options: FocusToggleOptions): UseFocusToggle {
-  const trackReference = useEnsureTrackRef(options.trackRef);
+export function useFocusToggle(props: FocusToggleProps): UseFocusToggle {
+  const trackReference = useEnsureTrackRef(props.trackRef);
   const layoutContext = useMaybeLayoutContext();
 
   const inFocus = computed<boolean>(() =>

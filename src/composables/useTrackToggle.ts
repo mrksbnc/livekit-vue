@@ -32,15 +32,15 @@ export type UseTrackToggle = {
   onClick: (evt: MouseEvent) => void;
 };
 
-export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggle {
+export function useTrackToggle(props: UseTrackToggleProps): UseTrackToggle {
   const room = useMaybeRoomContext();
 
-  const enabled = ref<boolean>(options.initialState ?? false);
+  const enabled = ref<boolean>(props.initialState ?? false);
   const pending = ref<boolean>(false);
   const userInteraction = ref<boolean>(false);
 
   const track = computed<LocalTrackPublication | undefined>(() =>
-    room?.value?.localParticipant?.getTrackPublication(options.source),
+    room?.value?.localParticipant?.getTrackPublication(props.source),
   );
 
   const mediaToggle = computed<ReturnType<typeof setupMediaToggle | typeof setupManualToggle>>(
@@ -51,11 +51,11 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggle {
 
       try {
         return setupMediaToggle(
-          options.source,
+          props.source,
           room.value,
-          options.captureOptions,
-          options.publishOptions,
-          options.onDeviceError,
+          props.captureOptions,
+          props.publishOptions,
+          props.onDeviceError,
         );
       } catch (error) {
         console.error('Failed to set up media toggle:', error);
@@ -66,7 +66,7 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggle {
 
   const attributes = computed<ToggleButtonAttributes>(() => ({
     'aria-pressed': enabled.value,
-    'data-lk-source': options.source,
+    'data-lk-source': props.source,
     'data-lk-enabled': enabled.value,
   }));
 
@@ -82,8 +82,8 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggle {
       });
     }
 
-    if (options.customOnClickHandler) {
-      options.customOnClickHandler(evt);
+    if (props.customOnClickHandler) {
+      props.customOnClickHandler(evt);
     }
   }
 
@@ -97,8 +97,8 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggle {
       next: (value) => {
         enabled.value = value;
 
-        if (options.onChange) {
-          options.onChange(value, userInteraction.value);
+        if (props.onChange) {
+          props.onChange(value, userInteraction.value);
           userInteraction.value = false;
         }
       },
@@ -129,14 +129,14 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggle {
   });
 
   watchEffect(() => {
-    if (options.initialState === undefined || !mediaToggle.value.toggle) {
+    if (props.initialState === undefined || !mediaToggle.value.toggle) {
       return;
     }
 
-    console.debug('Forcing initial toggle state:', options.source, options.initialState);
+    console.debug('Forcing initial toggle state:', props.source, props.initialState);
 
     try {
-      mediaToggle.value.toggle(options.initialState).catch((error) => {
+      mediaToggle.value.toggle(props.initialState).catch((error) => {
         console.error('Failed to set initial state:', error);
         userInteraction.value = false;
       });

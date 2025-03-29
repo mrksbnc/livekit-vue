@@ -10,20 +10,22 @@ export type UseTrackSyncTime = {
   data: Ref<UseTrackSyncTimeData>;
 };
 
-export function useTrackSyncTime(
-  reference: TrackReferenceOrPlaceholder | undefined,
-): UseTrackSyncTime {
+export type UseTrackSyncTimeProps = {
+  trackRef: TrackReferenceOrPlaceholder | undefined;
+};
+
+export function useTrackSyncTime(props: UseTrackSyncTimeProps): UseTrackSyncTime {
   const data = ref<UseTrackSyncTimeData>({
     timestamp: Date.now(),
-    rtpTimestamp: reference?.publication?.track?.rtpTimestamp,
+    rtpTimestamp: props.trackRef?.publication?.track?.rtpTimestamp,
   });
 
   const observable = computed<ReturnType<typeof trackSyncTimeObserver> | undefined>(() => {
-    if (!reference?.publication?.track) {
+    if (!props.trackRef?.publication?.track) {
       return undefined;
     }
     try {
-      return trackSyncTimeObserver(reference.publication.track);
+      return trackSyncTimeObserver(props.trackRef.publication.track);
     } catch (error) {
       console.error('Failed to create track sync time observer:', error);
       return undefined;
@@ -41,7 +43,7 @@ export function useTrackSyncTime(
         next: (timestamp) => {
           data.value = {
             timestamp,
-            rtpTimestamp: reference?.publication?.track?.rtpTimestamp,
+            rtpTimestamp: props.trackRef?.publication?.track?.rtpTimestamp,
           };
         },
         error: (err) => {

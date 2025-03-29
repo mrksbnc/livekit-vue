@@ -12,10 +12,14 @@ export type UseLocalParticipantPermissions = {
   permissions: ShallowRef<ParticipantPermission | undefined>;
 };
 
+export type UseLocalParticipantPermissionsProps = {
+  options: UseLocalParticipantPermissionsOptions;
+};
+
 export function useLocalParticipantPermissions(
-  options: UseLocalParticipantPermissionsOptions = {},
+  props: UseLocalParticipantPermissionsProps,
 ): UseLocalParticipantPermissions {
-  const room = useEnsureRoomContext(options.room);
+  const room = useEnsureRoomContext(props.options.room);
 
   const permissions = shallowRef<ParticipantPermission | undefined>(
     room.value?.localParticipant?.permissions,

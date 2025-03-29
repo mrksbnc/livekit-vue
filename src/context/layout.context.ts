@@ -1,12 +1,30 @@
-import type { WidgetState } from '@livekit/components-core';
+import type { PinState, TrackReferenceOrPlaceholder } from '@livekit/components-core';
 import { createInjectionState } from '@vueuse/core';
 import { shallowRef, type ShallowRef } from 'vue';
-import { usePinContext, type PinContext } from './pin.context';
-import { useWidgetContext, type WidgetContextType } from './widget.context';
+import { usePinContext } from './pin.context';
+import { useWidgetContext } from './widget.context';
+
+export type LayoutContextAction =
+  | {
+      msg: 'set_pin';
+      trackReference: TrackReferenceOrPlaceholder;
+    }
+  | { msg: 'clear_pin' }
+  | { msg: 'toggle_settings' };
+
+export function pinReducer(state: PinState, action: LayoutContextAction): PinState {
+  if (action.msg === 'set_pin') {
+    return [action.trackReference];
+  } else if (action.msg === 'clear_pin') {
+    return [];
+  } else {
+    return { ...state };
+  }
+}
 
 export type LayoutState = {
-  pin: PinContext;
-  widget: WidgetState;
+  pin: ReturnType<typeof usePinContext>;
+  widget: ReturnType<typeof useWidgetContext>;
 };
 
 const [useProvideLayoutContext, useLayoutContext] = createInjectionState(
@@ -33,24 +51,12 @@ export function useEnsureLayoutContext(layoutContext?: LayoutState) {
 }
 
 export function useCreateLayoutContext(): LayoutState {
-  const pinContext = usePinContext() as PinContext | undefined;
-
   return {
-    pin: pinContext ?? {
-      state: [],
-      dispatch: undefined,
-    },
-    widget: useWidgetContext()?.value ?? {
-      showChat: false,
-      unreadMessages: 0,
-      showSettings: false,
-    },
+    pin: usePinContext(),
+    widget: useWidgetContext(),
   };
 }
 
-export function useEnsureCreateLayoutContext(layoutContext?: {
-  pin: PinContext;
-  widget: WidgetContextType;
-}) {
+export function useEnsureCreateLayoutContext(layoutContext?: LayoutState) {
   return shallowRef(layoutContext) ?? useCreateLayoutContext();
 }

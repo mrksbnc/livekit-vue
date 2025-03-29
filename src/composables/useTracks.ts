@@ -35,17 +35,21 @@ function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
   return difference;
 }
 
+export type RequiredPlaceholdersProps = {
+  sources: SourcesArray;
+  participants: Participant[];
+};
+
 export function requiredPlaceholders(
-  sources: SourcesArray,
-  participants: Participant[],
+  props: RequiredPlaceholdersProps,
 ): Map<Participant['identity'], Track.Source[]> {
   const placeholderMap = new Map<Participant['identity'], Track.Source[]>();
-  if (isSourcesWithOptions(sources)) {
-    const sourcesThatNeedPlaceholder = sources
+  if (isSourcesWithOptions(props.sources)) {
+    const sourcesThatNeedPlaceholder = props.sources
       .filter((sourceWithOption) => sourceWithOption.withPlaceholder)
       .map((sourceWithOption) => sourceWithOption.source);
 
-    for (const participant of participants) {
+    for (const participant of props.participants) {
       const sourcesOfSubscribedTracks = participant
         .getTrackPublications()
         .map((pub) => pub.track?.source)
@@ -82,7 +86,10 @@ export function useTracks<T extends SourcesArray = Track.Source[]>(
 
   const computedTrackRefs = computed<TrackReferenceOrPlaceholder[] | TrackReference[]>(() => {
     if (isSourcesWithOptions(sources)) {
-      const requirePlaceholder = requiredPlaceholders(sources, participants.value as Participant[]);
+      const requirePlaceholder = requiredPlaceholders({
+        sources,
+        participants: participants.value as Participant[],
+      });
       const trackReferencesWithPlaceholders = Array.from(
         trackReferences.value,
       ) as TrackReferenceOrPlaceholder[];

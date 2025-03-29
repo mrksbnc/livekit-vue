@@ -4,27 +4,27 @@ import { encryptionStatusObservable } from '@livekit/components-core';
 import type { LocalParticipant, Participant, Room } from 'livekit-client';
 import { computed, ref, watchEffect, type Ref } from 'vue';
 
-export type UseIsEncryptedOptions = {
+export type UseIsEncryptedProps = {
   room?: Room;
+  participant?: Participant;
 };
 
 export type UseIsEncrypted = {
   isEncrypted: Ref<boolean>;
 };
 
-export function useIsEncrypted(
-  participant?: Participant,
-  options: UseIsEncryptedOptions = {},
-): UseIsEncrypted {
-  const p = useEnsureParticipant(participant);
-  const room = useEnsureRoomContext(options.room);
+export function useIsEncrypted(props: UseIsEncryptedProps): UseIsEncrypted {
+  const room = useEnsureRoomContext(props.room);
+  const participant = useEnsureParticipant(props.participant);
 
   const isEncrypted = ref<boolean>(
-    p.value.isLocal ? (p.value as LocalParticipant).isE2EEEnabled : !!p.value?.isEncrypted,
+    participant.value.isLocal
+      ? (participant.value as LocalParticipant).isE2EEEnabled
+      : !!participant.value?.isEncrypted,
   );
 
   const observable = computed<ReturnType<typeof encryptionStatusObservable>>(() =>
-    encryptionStatusObservable(room.value, p.value),
+    encryptionStatusObservable(room.value, participant.value),
   );
 
   watchEffect((onCleanup): void => {

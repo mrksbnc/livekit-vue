@@ -9,10 +9,18 @@ export type UseTrack = {
   isTrackAvailable: ComputedRef<boolean>;
 };
 
-export function useTrack(source: Track.Source, participant?: Participant): UseTrack {
-  const p = useEnsureParticipant(participant);
+export type UseTrackProps = {
+  source: Track.Source;
+  participant?: Participant;
+};
 
-  const { trackReference } = useTrackRefBySourceOrName({ source, participant: p.value });
+export function useTrack(props: UseTrackProps): UseTrack {
+  const participant = useEnsureParticipant(props.participant);
+
+  const { trackReference } = useTrackRefBySourceOrName({
+    source: props.source,
+    participant: participant.value,
+  });
 
   const isTrackAvailable = computed<boolean>(
     () => !!(trackReference.value.publication?.track && !trackReference.value.publication.isMuted),

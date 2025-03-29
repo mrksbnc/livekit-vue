@@ -3,7 +3,7 @@ import { computed, type ComputedRef } from 'vue';
 import { useLocalParticipant } from './useLocalParticipant';
 import { useRemoteParticipants } from './useRemoteParticipants';
 
-export type UseParticipantsOptions = {
+export type UseParticipantsProps = {
   updateOnlyOn?: RoomEvent[];
   room?: Room;
 };
@@ -14,14 +14,14 @@ export type UseParticipants = {
   participants: ComputedRef<MixedParticipantArray>;
 };
 
-export function useParticipants(options: UseParticipantsOptions = {}): UseParticipants {
+export function useParticipants(props: UseParticipantsProps = {}): UseParticipants {
   const { participants: remoteParticipants } = useRemoteParticipants({
-    updateOnlyOn: options.updateOnlyOn,
-    room: options.room,
+    updateOnlyOn: props.updateOnlyOn,
+    room: props.room,
   });
 
   const { localParticipant } = useLocalParticipant({
-    room: options.room,
+    room: props.room,
   });
 
   const participants = computed<MixedParticipantArray>(() => {

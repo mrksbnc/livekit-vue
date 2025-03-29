@@ -1,7 +1,7 @@
 import { loadUserChoices, saveUserChoices, type LocalUserChoices } from '@livekit/components-core';
 import { ref, watchEffect, type Ref } from 'vue';
 
-export type UsePersistentUserChoicesOptions = {
+export type UsePersistentUserChoicesProps = {
   defaults?: Partial<LocalUserChoices>;
   preventSave?: boolean;
   preventLoad?: boolean;
@@ -17,15 +17,15 @@ export type UsePersistentUserChoices = {
 };
 
 export function usePersistentUserChoices(
-  options: UsePersistentUserChoicesOptions = {},
+  props: UsePersistentUserChoicesProps = {},
 ): UsePersistentUserChoices {
   let initialChoices: LocalUserChoices;
 
   try {
-    initialChoices = loadUserChoices(options.defaults, options.preventLoad ?? false);
+    initialChoices = loadUserChoices(props.defaults, props.preventLoad ?? false);
   } catch (error) {
     console.error('Error loading user choices:', error);
-    initialChoices = (options.defaults as LocalUserChoices) || ({} as LocalUserChoices);
+    initialChoices = (props.defaults as LocalUserChoices) || ({} as LocalUserChoices);
   }
 
   const userChoices = ref<LocalUserChoices>(initialChoices);
@@ -52,7 +52,7 @@ export function usePersistentUserChoices(
 
   watchEffect(() => {
     try {
-      saveUserChoices(userChoices.value, options.preventSave ?? false);
+      saveUserChoices(userChoices.value, props.preventSave ?? false);
     } catch (error) {
       console.error('Error saving user choices:', error);
     }

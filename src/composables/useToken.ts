@@ -6,6 +6,11 @@ export type UserInfo = {
   metadata?: string;
 };
 
+export type UseTokenProps = {
+  identity?: string;
+  metadata?: string;
+};
+
 export type UseTokenOptions = {
   userInfo?: UserInfo;
 };
@@ -18,35 +23,50 @@ export type UseTokenArgs = {
 
 export type UseToken = {
   token: Ref<string | undefined>;
+  getToken: (refreshToken?: boolean) => Promise<string | undefined>;
 };
 
-export function useToken({ tokenEndpoint, roomName, options = {} }: UseTokenArgs): UseToken {
+export function useToken(props: UseTokenArgs): UseToken {
   const token = ref<string | undefined>(undefined);
 
-  watchEffect(async () => {
-    if (!tokenEndpoint || !options.userInfo?.identity) {
+  const fetchToken = async (): Promise<string | undefined> => {
+    if (!props.tokenEndpoint || !props.options?.userInfo?.identity) {
       return;
     }
 
     try {
       const params = new URLSearchParams({
-        ...options.userInfo,
-        roomName,
+        ...props.options?.userInfo,
+        roomName: props.roomName,
       });
 
-      const res = await fetch(`${tokenEndpoint}?${params.toString()}`);
+      const res = await fetch(`${props.tokenEndpoint}?${params.toString()}`);
 
       if (!res.ok) {
         console.error(`Token fetch failed: ${res.status} ${res.statusText}`);
-        return;
+        return undefined;
       }
 
       const data = await res.json();
-      token.value = data.accessToken;
+      return data.accessToken;
     } catch (err) {
       console.error('Token fetch error:', err);
+      return undefined;
+    }
+  };
+
+  const getToken = async (refreshToken?: boolean): Promise<string | undefined> => {
+    if (refreshToken || token.value === undefined) {
+      token.value = await fetchToken();
+    }
+    return token.value;
+  };
+
+  watchEffect(async () => {
+    if (!token.value) {
+      await getToken(true);
     }
   });
 
-  return { token };
+  return { token, getToken };
 }

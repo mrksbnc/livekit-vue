@@ -5,10 +5,12 @@ import {
   type GridLayoutInfo,
 } from '@livekit/components-core';
 import { useElementSize } from '@vueuse/core';
-import { computed, watch, type ComputedRef, type Ref } from 'vue';
+import { computed, watchEffect, type ComputedRef, type Ref } from 'vue';
 
-export type UseGridLayoutOptions = {
+export type UseGridLayoutProps = {
+  trackCount: number;
   layouts?: GridLayoutDefinition[];
+  gridElement: Ref<HTMLDivElement>;
 };
 
 export type UseGridLayout = {
@@ -17,33 +19,27 @@ export type UseGridLayout = {
   containerHeight: Ref<number>;
 };
 
-export function useGridLayout(
-  gridElement: Ref<HTMLDivElement>,
-  trackCount: number,
-  options: UseGridLayoutOptions = {
-    layouts: [],
-  },
-): UseGridLayout {
-  const { width, height } = useElementSize(gridElement);
+export function useGridLayout(props: UseGridLayoutProps): UseGridLayout {
+  const { width, height } = useElementSize(props.gridElement);
 
   const gridLayouts = computed<GridLayoutDefinition[]>(() => {
-    return options.layouts ?? GRID_LAYOUTS;
+    return props.layouts ?? GRID_LAYOUTS;
   });
 
   const layout = computed<GridLayoutInfo>(() => {
-    return selectGridLayout(gridLayouts.value, trackCount, width.value, height.value);
+    return selectGridLayout(gridLayouts.value, props.trackCount, width.value, height.value);
   });
 
-  watch([gridElement, layout], ([element, currentLayout]) => {
-    if (element && currentLayout) {
-      element.style.setProperty('--lk-col-count', currentLayout.columns.toString());
-      element.style.setProperty('--lk-row-count', currentLayout.rows.toString());
+  watchEffect(() => {
+    if (props.gridElement.value) {
+      props.gridElement.value.style.setProperty('--lk-col-count', layout.value.columns.toString());
+      props.gridElement.value.style.setProperty('--lk-row-count', layout.value.rows.toString());
     }
   });
 
   return {
     layout,
-    containerWidth: width as Ref<number>,
-    containerHeight: height as Ref<number>,
+    containerWidth: width,
+    containerHeight: height,
   };
 }

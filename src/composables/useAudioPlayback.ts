@@ -8,8 +8,12 @@ export type UseAudioPlayback = {
   startAudio: () => Promise<void>;
 };
 
-export function useAudioPlayback(room?: Room): UseAudioPlayback {
-  const roomEnsured = useEnsureRoomContext(room);
+export type UseAudioPlaybackProps = {
+  room?: Room;
+};
+
+export function useAudioPlayback(props: UseAudioPlaybackProps): UseAudioPlayback {
+  const roomEnsured = useEnsureRoomContext(props.room);
 
   const canPlayAudio = ref<boolean>(roomEnsured.value?.canPlaybackAudio ?? false);
 

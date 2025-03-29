@@ -4,7 +4,7 @@ import { ConnectionState } from 'livekit-client';
 import { computed, type ComputedRef } from 'vue';
 import { useConnectionState } from './useConnectionState';
 
-export type DisconnectButtonOptions = {
+export type DisconnectButtonProps = {
   stopTracks?: boolean;
 };
 
@@ -13,7 +13,7 @@ export type UseDisconnectButton = {
   onClick: () => void;
 };
 
-export function useDisconnectButton(options: DisconnectButtonOptions = {}): UseDisconnectButton {
+export function useDisconnectButton(props: DisconnectButtonProps = {}): UseDisconnectButton {
   const room = useEnsureRoomContext();
   const { connectionState } = useConnectionState({
     room: room.value,
@@ -26,7 +26,7 @@ export function useDisconnectButton(options: DisconnectButtonOptions = {}): UseD
   const disabled = computed<boolean>(() => connectionState.value === ConnectionState.Disconnected);
 
   function onClick(): void {
-    setup.value.disconnect(options.stopTracks ?? true);
+    setup.value.disconnect(props.stopTracks ?? true);
   }
 
   return {

@@ -3,7 +3,7 @@ import { connectedParticipantsObserver } from '@livekit/components-core';
 import type { Participant, Room, RoomEvent } from 'livekit-client';
 import { shallowRef, watchEffect, type ShallowRef } from 'vue';
 
-export type UseRemoteParticipantsOptions = {
+export type UseRemoteParticipantsProps = {
   updateOnlyOn?: RoomEvent[];
   room?: Room;
 };
@@ -13,9 +13,9 @@ export type UseRemoteParticipants = {
 };
 
 export function useRemoteParticipants(
-  options: UseRemoteParticipantsOptions = {},
+  props: UseRemoteParticipantsProps = {},
 ): UseRemoteParticipants {
-  const room = useEnsureRoomContext(options.room);
+  const room = useEnsureRoomContext(props.room);
   const participants = shallowRef<Participant[]>([]);
 
   watchEffect((onCleanup) => {
@@ -25,7 +25,7 @@ export function useRemoteParticipants(
     }
 
     const observable = connectedParticipantsObserver(room.value, {
-      additionalRoomEvents: options.updateOnlyOn,
+      additionalRoomEvents: props.updateOnlyOn,
     });
 
     const subscription = observable.subscribe({

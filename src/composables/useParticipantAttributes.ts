@@ -3,8 +3,9 @@ import { participantAttributesObserver } from '@livekit/components-core';
 import type { Participant } from 'livekit-client';
 import { ref, shallowRef, watchEffect, type Ref } from 'vue';
 
-export type UseParticipantAttributesOptions = {
+export type UseParticipantAttributesProps = {
   participant?: Participant;
+  attributeKey?: string;
 };
 
 export type UseParticipantAttribute = {
@@ -16,22 +17,27 @@ export type UseParticipantAttributes = {
 };
 
 export function useParticipantAttribute(
-  attributeKey: string,
-  options: UseParticipantAttributesOptions = {},
+  props: UseParticipantAttributesProps = {},
 ): UseParticipantAttribute {
-  const participant = useEnsureParticipant(options.participant);
-  const attribute = ref<string | undefined>(participant.value?.attributes[attributeKey]);
+  const participant = useEnsureParticipant(props.participant);
+  const attribute = ref<string | undefined>(
+    props.attributeKey ? participant.value?.attributes[props.attributeKey] : undefined,
+  );
 
   watchEffect((onCleanup) => {
-    if (!participant.value) return;
+    if (!participant.value) {
+      return;
+    }
 
     const observer = participantAttributesObserver(participant.value);
-    if (!observer) return;
+    if (!observer) {
+      return;
+    }
 
     const subscription = observer.subscribe({
       next: (attr) => {
-        if (attr.changed[attributeKey] !== undefined) {
-          attribute.value = attr.attributes[attributeKey];
+        if (props.attributeKey && attr.changed[props.attributeKey] !== undefined) {
+          attribute.value = attr.attributes[props.attributeKey];
         }
       },
       error: (err) => {
@@ -46,7 +52,7 @@ export function useParticipantAttribute(
 }
 
 export function useParticipantAttributes(
-  props: UseParticipantAttributesOptions = {},
+  props: UseParticipantAttributesProps = {},
 ): UseParticipantAttributes {
   const participantContext = useMaybeParticipantContext();
   const participant = props.participant ? shallowRef(props.participant) : participantContext;
@@ -55,10 +61,14 @@ export function useParticipantAttributes(
   );
 
   watchEffect((onCleanup) => {
-    if (!participant?.value) return;
+    if (!participant?.value) {
+      return;
+    }
 
     const observer = participantAttributesObserver(participant.value);
-    if (!observer) return;
+    if (!observer) {
+      return;
+    }
 
     const subscription = observer.subscribe({
       next: (attr) => {
