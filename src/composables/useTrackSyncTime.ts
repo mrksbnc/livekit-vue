@@ -1,7 +1,5 @@
 import { trackSyncTimeObserver, type TrackReferenceOrPlaceholder } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
-import { Observable } from 'rxjs';
-import { computed, onMounted, ref, watch, type Ref } from 'vue';
+import { computed, ref, watchEffect, type Ref } from 'vue';
 
 export type UseTrackSyncTimeData = {
   timestamp: number;
@@ -15,38 +13,47 @@ export type UseTrackSyncTime = {
 export function useTrackSyncTime(
   reference: TrackReferenceOrPlaceholder | undefined,
 ): UseTrackSyncTime {
-  const observable = computed<Observable<number> | undefined>(() => {
-    return reference?.publication?.track
-      ? (trackSyncTimeObserver(reference?.publication.track) as unknown as Observable<number>)
-      : undefined;
-  });
-
-  const dataRef = ref<UseTrackSyncTimeData>({
+  const data = ref<UseTrackSyncTimeData>({
     timestamp: Date.now(),
     rtpTimestamp: reference?.publication?.track?.rtpTimestamp,
   });
 
-  watch(
-    () => observable.value,
-    (val) => {
-      if (val) {
-        useSubscription(
-          val.subscribe((data) => {
-            dataRef.value.timestamp = data;
-          }),
-        );
-      }
-    },
-    { immediate: true },
-  );
-
-  onMounted(() => {
-    if (!observable.value) {
-      throw new Error('Please provide a valid observable when using `useTrackSyncTime`');
+  const observable = computed<ReturnType<typeof trackSyncTimeObserver> | undefined>(() => {
+    if (!reference?.publication?.track) {
+      return undefined;
+    }
+    try {
+      return trackSyncTimeObserver(reference.publication.track);
+    } catch (error) {
+      console.error('Failed to create track sync time observer:', error);
+      return undefined;
     }
   });
 
-  return {
-    data: dataRef,
-  };
+  watchEffect((onCleanup) => {
+    const currentObservable = observable.value;
+    if (!currentObservable) {
+      return;
+    }
+
+    try {
+      const subscription = currentObservable.subscribe({
+        next: (timestamp) => {
+          data.value = {
+            timestamp,
+            rtpTimestamp: reference?.publication?.track?.rtpTimestamp,
+          };
+        },
+        error: (err) => {
+          console.error('Error in track sync time subscription:', err);
+        },
+      });
+
+      onCleanup(() => subscription.unsubscribe());
+    } catch (error) {
+      console.error('Failed to subscribe to track sync time:', error);
+    }
+  });
+
+  return { data };
 }

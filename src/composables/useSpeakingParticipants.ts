@@ -1,8 +1,7 @@
 import { useEnsureRoomContext } from '@/context/room.context';
 import { activeSpeakerObserver } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import type { Participant } from 'livekit-client';
-import { shallowRef, type ShallowRef } from 'vue';
+import { shallowRef, watchEffect, type ShallowRef } from 'vue';
 
 export type UseSpeakingParticipants = {
   activeSpeakers: ShallowRef<Participant[]>;
@@ -10,14 +9,26 @@ export type UseSpeakingParticipants = {
 
 export function useSpeakingParticipants(): UseSpeakingParticipants {
   const room = useEnsureRoomContext();
+  const activeSpeakers = shallowRef<Participant[]>(room.value?.activeSpeakers ?? []);
 
-  const activeSpeakers = shallowRef<Participant[]>(room.value.activeSpeakers ?? []);
+  watchEffect((onCleanup) => {
+    if (!room.value) {
+      return;
+    }
 
-  useSubscription(
-    activeSpeakerObserver(room.value).subscribe((speakers) => {
-      activeSpeakers.value = speakers;
-    }),
-  );
+    const observable = activeSpeakerObserver(room.value);
+
+    const subscription = observable.subscribe({
+      next: (speakers) => {
+        activeSpeakers.value = speakers ?? [];
+      },
+      error: (err) => {
+        console.error('Error in active speaker observer:', err);
+      },
+    });
+
+    onCleanup(() => subscription.unsubscribe());
+  });
 
   return { activeSpeakers };
 }

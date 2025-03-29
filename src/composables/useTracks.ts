@@ -7,10 +7,10 @@ import {
   type TrackReference,
   type TrackReferenceOrPlaceholder,
   type TrackReferencePlaceholder,
+  type TrackSourceWithOptions,
 } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import { Participant, Track, type Room, type RoomEvent } from 'livekit-client';
-import { computed, shallowRef, type Ref } from 'vue';
+import { computed, shallowRef, watchEffect, type ComputedRef, type ShallowRef } from 'vue';
 
 export type UseTracksOptions = {
   updateOnlyOn?: RoomEvent[];
@@ -18,16 +18,21 @@ export type UseTracksOptions = {
   room?: Room;
 };
 
-export type UseTracks = {
-  trackReferences: Ref<TrackReferenceOrPlaceholder[] | TrackReference[]>;
+export type UseTracks<T extends SourcesArray = Track.Source[]> = {
+  trackReferences: T extends Track.Source[]
+    ? ShallowRef<TrackReference[]>
+    : T extends TrackSourceWithOptions[]
+      ? ComputedRef<TrackReferenceOrPlaceholder[]>
+      : never;
 };
 
 function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
-  const _difference = new Set(setA);
+  const difference = new Set(setA);
+
   for (const elem of setB) {
-    _difference.delete(elem);
+    difference.delete(elem);
   }
-  return _difference;
+  return difference;
 }
 
 export function requiredPlaceholders(
@@ -40,7 +45,7 @@ export function requiredPlaceholders(
       .filter((sourceWithOption) => sourceWithOption.withPlaceholder)
       .map((sourceWithOption) => sourceWithOption.source);
 
-    participants.forEach((participant) => {
+    for (const participant of participants) {
       const sourcesOfSubscribedTracks = participant
         .getTrackPublications()
         .map((pub) => pub.track?.source)
@@ -52,21 +57,21 @@ export function requiredPlaceholders(
       if (placeholderNeededForThisParticipant.length > 0) {
         placeholderMap.set(participant.identity, placeholderNeededForThisParticipant);
       }
-    });
+    }
   }
   return placeholderMap;
 }
 
-export function useTracks(
-  sources: SourcesArray = [
+export function useTracks<T extends SourcesArray = Track.Source[]>(
+  sources: T = [
     Track.Source.Camera,
     Track.Source.Microphone,
     Track.Source.ScreenShare,
     Track.Source.ScreenShareAudio,
     Track.Source.Unknown,
-  ],
+  ] as T,
   options: UseTracksOptions = {},
-): UseTracks {
+): UseTracks<T> {
   const room = useEnsureRoomContext(options.room);
   const participants = shallowRef<Participant[]>([]);
   const trackReferences = shallowRef<TrackReference[]>([]);
@@ -78,7 +83,6 @@ export function useTracks(
   const computedTrackRefs = computed<TrackReferenceOrPlaceholder[] | TrackReference[]>(() => {
     if (isSourcesWithOptions(sources)) {
       const requirePlaceholder = requiredPlaceholders(sources, participants.value as Participant[]);
-
       const trackReferencesWithPlaceholders = Array.from(
         trackReferences.value,
       ) as TrackReferenceOrPlaceholder[];
@@ -117,15 +121,31 @@ export function useTracks(
     }
   });
 
-  useSubscription(
-    trackReferencesObservable(room.value, computedSources.value, {}).subscribe((data) => {
-      console.debug('setting track bundles', trackReferences, participants);
-      trackReferences.value = data.trackReferences;
-      participants.value = data.participants;
-    }),
-  );
+  watchEffect((onCleanup) => {
+    if (!room.value) {
+      return;
+    }
+
+    const subscription = trackReferencesObservable(room.value, computedSources.value, {
+      additionalRoomEvents: options.updateOnlyOn,
+      onlySubscribed: options.onlySubscribed,
+    }).subscribe({
+      next: (data) => {
+        console.debug('Updating track references:', data);
+        trackReferences.value = data.trackReferences;
+        participants.value = data.participants;
+      },
+      error: (err) => {
+        console.error('Error in track references subscription:', err);
+      },
+    });
+
+    onCleanup(() => subscription.unsubscribe());
+  });
 
   return {
-    trackReferences: computedTrackRefs,
+    trackReferences: (isSourcesWithOptions(sources)
+      ? computedTrackRefs
+      : trackReferences) as UseTracks<T>['trackReferences'],
   };
 }

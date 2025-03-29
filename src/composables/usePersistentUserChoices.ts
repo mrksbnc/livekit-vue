@@ -1,5 +1,5 @@
 import { loadUserChoices, saveUserChoices, type LocalUserChoices } from '@livekit/components-core';
-import { ref, watch, type Ref } from 'vue';
+import { ref, watchEffect, type Ref } from 'vue';
 
 export type UsePersistentUserChoicesOptions = {
   defaults?: Partial<LocalUserChoices>;
@@ -19,9 +19,16 @@ export type UsePersistentUserChoices = {
 export function usePersistentUserChoices(
   options: UsePersistentUserChoicesOptions = {},
 ): UsePersistentUserChoices {
-  const userChoices = ref<LocalUserChoices>(
-    loadUserChoices(options.defaults, options.preventLoad ?? false),
-  );
+  let initialChoices: LocalUserChoices;
+
+  try {
+    initialChoices = loadUserChoices(options.defaults, options.preventLoad ?? false);
+  } catch (error) {
+    console.error('Error loading user choices:', error);
+    initialChoices = (options.defaults as LocalUserChoices) || ({} as LocalUserChoices);
+  }
+
+  const userChoices = ref<LocalUserChoices>(initialChoices);
 
   function saveAudioInputDeviceId(deviceId: string): void {
     userChoices.value = { ...userChoices.value, audioDeviceId: deviceId };
@@ -43,15 +50,13 @@ export function usePersistentUserChoices(
     userChoices.value = { ...userChoices.value, username };
   }
 
-  watch(
-    [userChoices, options.preventSave],
-    () => {
+  watchEffect(() => {
+    try {
       saveUserChoices(userChoices.value, options.preventSave ?? false);
-    },
-    {
-      deep: true,
-    },
-  );
+    } catch (error) {
+      console.error('Error saving user choices:', error);
+    }
+  });
 
   return {
     userChoices,

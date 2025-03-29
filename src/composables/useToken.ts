@@ -1,4 +1,4 @@
-import { ref, watch, type Ref } from 'vue';
+import { ref, watchEffect, type Ref } from 'vue';
 
 export type UserInfo = {
   identity?: string;
@@ -11,7 +11,7 @@ export type UseTokenOptions = {
 };
 
 export type UseTokenArgs = {
-  tokenEndpoint: string;
+  tokenEndpoint: string | undefined;
   roomName: string;
   options?: UseTokenOptions;
 };
@@ -23,24 +23,30 @@ export type UseToken = {
 export function useToken({ tokenEndpoint, roomName, options = {} }: UseTokenArgs): UseToken {
   const token = ref<string | undefined>(undefined);
 
-  async function fetchToken() {
-    console.debug('fetching token');
-
-    const params = new URLSearchParams({ ...options.userInfo, roomName });
-    const res = await fetch(`${tokenEndpoint}?${params.toString()}`);
-
-    if (!res.ok) {
-      console.error(
-        `Could not fetch token. Server responded with status ${res.status}: ${res.statusText}`,
-      );
+  watchEffect(async () => {
+    if (!tokenEndpoint || !options.userInfo?.identity) {
       return;
     }
 
-    const { accessToken } = await res.json();
-    token.value = accessToken;
-  }
+    try {
+      const params = new URLSearchParams({
+        ...options.userInfo,
+        roomName,
+      });
 
-  watch([tokenEndpoint, roomName, options.userInfo], fetchToken);
+      const res = await fetch(`${tokenEndpoint}?${params.toString()}`);
+
+      if (!res.ok) {
+        console.error(`Token fetch failed: ${res.status} ${res.statusText}`);
+        return;
+      }
+
+      const data = await res.json();
+      token.value = data.accessToken;
+    } catch (err) {
+      console.error('Token fetch error:', err);
+    }
+  });
 
   return { token };
 }

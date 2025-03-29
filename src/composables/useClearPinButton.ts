@@ -3,38 +3,47 @@ import type { PinContext } from '@/context/pin.context';
 import { type PinState } from '@livekit/components-core';
 import { computed, type Ref } from 'vue';
 
-export type UseClearPinButton = {
-  disabled: Ref<boolean>;
-  onClick: () => void;
+export type ClearPinButtonProps = {
+  className?: string;
+  disabled?: boolean;
+  onClick?: () => void;
 };
 
-export function useClearPinButton(): UseClearPinButton {
+export type UseClearPinButton = {
+  buttonProps: Ref<{
+    disabled: boolean;
+    onClick: () => void;
+  }>;
+};
+
+export function useClearPinButton(props: ClearPinButtonProps = {}): UseClearPinButton {
   const layoutContext = useEnsureLayoutContext();
 
-  const pinState = computed<PinContext>(() => {
-    return layoutContext.value.pin;
-  });
+  const pinContext = computed<PinContext>(() => layoutContext.value.pin);
 
-  const state = computed<PinState>(() => {
-    return pinState.value.state;
-  });
+  const pinState = computed<PinState | undefined>(() => pinContext.value.state);
+  const dispatch = computed<PinContext['dispatch']>(() => pinContext.value.dispatch);
 
-  const dispatch = computed<PinContext['dispatch']>(() => {
-    return pinState.value.dispatch;
-  });
+  const buttonProps = computed<{ disabled: boolean; onClick: () => void }>(() => {
+    const isDisabled = !pinState.value?.length || props.disabled || false;
 
-  const disabled = computed<boolean>(() => {
-    return !state.value?.length;
-  });
+    const handleClick = (): void => {
+      if (dispatch.value) {
+        dispatch.value({ msg: 'clear_pin' });
+      }
 
-  function onClick() {
-    if (dispatch.value) {
-      dispatch.value({ msg: 'clear_pin' });
-    }
-  }
+      if (props.onClick) {
+        props.onClick();
+      }
+    };
+
+    return {
+      disabled: isDisabled,
+      onClick: handleClick,
+    };
+  });
 
   return {
-    disabled,
-    onClick,
+    buttonProps,
   };
 }

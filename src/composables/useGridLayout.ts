@@ -5,16 +5,16 @@ import {
   type GridLayoutInfo,
 } from '@livekit/components-core';
 import { useElementSize } from '@vueuse/core';
-import { computed, watch, type Ref } from 'vue';
+import { computed, watch, type ComputedRef, type Ref } from 'vue';
 
 export type UseGridLayoutOptions = {
   layouts?: GridLayoutDefinition[];
 };
 
 export type UseGridLayout = {
-  layout: Ref<GridLayoutDefinition | undefined>;
-  containerWidth: Ref<number | undefined>;
-  containerHeight: Ref<number | undefined>;
+  layout: ComputedRef<GridLayoutInfo>;
+  containerWidth: Ref<number>;
+  containerHeight: Ref<number>;
 };
 
 export function useGridLayout(
@@ -34,16 +34,16 @@ export function useGridLayout(
     return selectGridLayout(gridLayouts.value, trackCount, width.value, height.value);
   });
 
-  watch([gridElement, layout], () => {
-    if (gridElement.value && layout) {
-      gridElement.value.style.setProperty('--lk-col-count', layout.value?.columns.toString());
-      gridElement.value.style.setProperty('--lk-row-count', layout.value?.rows.toString());
+  watch([gridElement, layout], ([element, currentLayout]) => {
+    if (element && currentLayout) {
+      element.style.setProperty('--lk-col-count', currentLayout.columns.toString());
+      element.style.setProperty('--lk-row-count', currentLayout.rows.toString());
     }
   });
 
   return {
     layout,
-    containerWidth: width,
-    containerHeight: height,
+    containerWidth: width as Ref<number>,
+    containerHeight: height as Ref<number>,
   };
 }

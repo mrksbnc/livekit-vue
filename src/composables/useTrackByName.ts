@@ -9,8 +9,10 @@ export type UseTrackByName = {
 };
 
 export function useTrackByName(name: string, participant?: Participant): UseTrackByName {
-  const p = useEnsureParticipant(participant);
-  const { trackReference } = useTrackRefBySourceOrName({ name, participant: p.value });
+  const ensuredParticipant = useEnsureParticipant(participant);
 
-  return { trackReference };
+  return useTrackRefBySourceOrName({
+    name,
+    participant: ensuredParticipant.value,
+  });
 }

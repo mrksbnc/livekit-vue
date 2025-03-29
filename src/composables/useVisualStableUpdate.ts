@@ -1,40 +1,49 @@
 import { updatePages, type TrackReferenceOrPlaceholder } from '@livekit/components-core';
-import { computed, ref, shallowRef, watch, type Ref, type ShallowRef } from 'vue';
+import {
+  computed,
+  ref,
+  shallowRef,
+  watch,
+  watchEffect,
+  type ComputedRef,
+  type MaybeRef,
+  type ShallowRef,
+} from 'vue';
 
-export interface UseVisualStableUpdateOptions {
+export type UseVisualStableUpdateOptions = {
+  trackReferences: TrackReferenceOrPlaceholder[] | MaybeRef<TrackReferenceOrPlaceholder[]>;
+  maxItemsOnPage: number;
   customSortFunction?: (
     trackReferences: TrackReferenceOrPlaceholder[],
   ) => TrackReferenceOrPlaceholder[];
-}
-
-export type UseVisualStableUpdateArgs = {
-  trackReferences: TrackReferenceOrPlaceholder[];
-  maxItemsOnPage: number;
-  options?: UseVisualStableUpdateOptions;
 };
 
 export type UseVisualStableUpdate = {
-  isLayoutChanged: Ref<boolean>;
-  sortedTrackReferences: Ref<TrackReferenceOrPlaceholder[]>;
+  isLayoutChanged: ComputedRef<boolean>;
+  sortedTrackReferences: ComputedRef<TrackReferenceOrPlaceholder[]>;
   updatedTrackReferences: ShallowRef<TrackReferenceOrPlaceholder[]>;
 };
 
-export function useVisualStableUpdate({
-  trackReferences,
-  maxItemsOnPage,
-  options = {},
-}: UseVisualStableUpdateArgs): UseVisualStableUpdate {
+export function useVisualStableUpdate(
+  options: UseVisualStableUpdateOptions,
+): UseVisualStableUpdate {
   const lastMaxItemsOnPage = ref<number>(-1);
-  const lastTrackRefs = ref<TrackReferenceOrPlaceholder[]>([]);
+  const lastTrackRefs = shallowRef<TrackReferenceOrPlaceholder[]>([]);
+
+  const trackReferences = computed<TrackReferenceOrPlaceholder[]>(() => {
+    return 'value' in options.trackReferences
+      ? options.trackReferences.value
+      : options.trackReferences;
+  });
 
   const isLayoutChanged = computed<boolean>(() => {
-    return maxItemsOnPage !== lastMaxItemsOnPage.value;
+    return options.maxItemsOnPage !== lastMaxItemsOnPage.value;
   });
 
   const sortedTrackReferences = computed<TrackReferenceOrPlaceholder[]>(() => {
     return options.customSortFunction
-      ? options.customSortFunction(trackReferences)
-      : trackReferences;
+      ? options.customSortFunction(trackReferences.value)
+      : trackReferences.value;
   });
 
   const updatedTrackReferences = shallowRef<TrackReferenceOrPlaceholder[]>([
@@ -45,9 +54,9 @@ export function useVisualStableUpdate({
     if (!isLayoutChanged.value) {
       try {
         updatedTrackReferences.value = updatePages(
-          lastTrackRefs.value as TrackReferenceOrPlaceholder[],
+          lastTrackRefs.value,
           sortedTrackReferences.value,
-          maxItemsOnPage,
+          options.maxItemsOnPage,
         );
       } catch (error) {
         console.error('Error while running updatePages(): ', error);
@@ -59,10 +68,18 @@ export function useVisualStableUpdate({
     } else {
       lastTrackRefs.value = updatedTrackReferences.value;
     }
-    lastMaxItemsOnPage.value = maxItemsOnPage;
+    lastMaxItemsOnPage.value = options.maxItemsOnPage;
   }
 
-  watch(() => sortedTrackReferences, updateTrackReferences);
+  watchEffect(() => {
+    if (isLayoutChanged.value) {
+      updateTrackReferences();
+    }
+  });
+
+  watch([() => options.maxItemsOnPage, trackReferences], () => {
+    updateTrackReferences();
+  });
 
   return {
     isLayoutChanged,

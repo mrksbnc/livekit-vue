@@ -1,19 +1,15 @@
 import type { TrackToggleProps } from '@/components/controls/track_toggle';
 import { useMaybeRoomContext } from '@/context/room.context';
 import { setupManualToggle, setupMediaToggle, type ToggleSource } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import type {
   AudioCaptureOptions,
   LocalTrackPublication,
   ScreenShareCaptureOptions,
   VideoCaptureOptions,
 } from 'livekit-client';
-import type { Observable } from 'rxjs';
-import { computed, onMounted, ref, watch, type Ref } from 'vue';
+import { computed, ref, watchEffect, type ComputedRef, type Ref } from 'vue';
 
 export type UseTrackToggleProps = Omit<TrackToggleProps, 'showIcon'>;
-
-export type StateObserver = Observable<boolean>;
 
 export type ToggleButtonAttributes = {
   'aria-pressed': boolean;
@@ -21,24 +17,18 @@ export type ToggleButtonAttributes = {
   'data-lk-enabled': boolean;
 };
 
-export type ToggleFunction =
-  | ((forceState?: boolean) => Promise<void>)
-  | ((
-      forceState?: boolean,
-      captureOptions?:
-        | VideoCaptureOptions
-        | AudioCaptureOptions
-        | ScreenShareCaptureOptions
-        | undefined,
-    ) => Promise<boolean | undefined>);
+export type ToggleFunction = (
+  forceState?: boolean,
+  captureOptions?: VideoCaptureOptions | AudioCaptureOptions | ScreenShareCaptureOptions,
+) => Promise<boolean | undefined | void>;
 
 export type UseTrackToggle = {
   toggle?: ToggleFunction;
   enabled: Ref<boolean>;
-  pending: Ref<boolean | undefined>;
-  track: Ref<LocalTrackPublication | undefined>;
-  attributes: Ref<ToggleButtonAttributes>;
-  disabled: Ref<boolean>;
+  pending: Ref<boolean>;
+  track: ComputedRef<LocalTrackPublication | undefined>;
+  attributes: ComputedRef<ToggleButtonAttributes>;
+  disabled: ComputedRef<boolean>;
   onClick: (evt: MouseEvent) => void;
 };
 
@@ -46,40 +36,33 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggle {
   const room = useMaybeRoomContext();
 
   const enabled = ref<boolean>(options.initialState ?? false);
-  const pending = ref<boolean | undefined>(undefined);
-
-  const userInteractionRef = ref<boolean>(false);
+  const pending = ref<boolean>(false);
+  const userInteraction = ref<boolean>(false);
 
   const track = computed<LocalTrackPublication | undefined>(() =>
     room?.value?.localParticipant?.getTrackPublication(options.source),
   );
 
-  const setupMediaToggleResult = computed(() => {
-    if (room?.value) {
-      return setupMediaToggle<ToggleSource>(
-        options.source,
-        room.value,
-        options.captureOptions,
-        options.publishOptions,
-        options.onDeviceError,
-      );
-    }
-    return setupManualToggle();
-  });
+  const mediaToggle = computed<ReturnType<typeof setupMediaToggle | typeof setupManualToggle>>(
+    () => {
+      if (!room?.value) {
+        return setupManualToggle();
+      }
 
-  const disabled = computed<boolean>(() => {
-    return pending.value ?? false;
-  });
-
-  const toggle = setupMediaToggleResult.value.toggle;
-
-  const enabledObserver = computed<StateObserver>(() => {
-    return setupMediaToggleResult.value.enabledObserver as unknown as StateObserver;
-  });
-
-  const pendingObserver = computed<StateObserver>(() => {
-    return setupMediaToggleResult.value.pendingObserver as unknown as StateObserver;
-  });
+      try {
+        return setupMediaToggle(
+          options.source,
+          room.value,
+          options.captureOptions,
+          options.publishOptions,
+          options.onDeviceError,
+        );
+      } catch (error) {
+        console.error('Failed to set up media toggle:', error);
+        return setupManualToggle();
+      }
+    },
+  );
 
   const attributes = computed<ToggleButtonAttributes>(() => ({
     'aria-pressed': enabled.value,
@@ -87,11 +70,16 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggle {
     'data-lk-enabled': enabled.value,
   }));
 
-  function onClick(evt: MouseEvent): void {
-    userInteractionRef.value = true;
+  const disabled = computed<boolean>(() => pending.value);
 
-    if (toggle) {
-      toggle().catch(() => (userInteractionRef.value = false));
+  function onClick(evt: MouseEvent): void {
+    userInteraction.value = true;
+
+    if (mediaToggle.value.toggle) {
+      mediaToggle.value.toggle().catch((error) => {
+        console.error('Failed to toggle track:', error);
+        userInteraction.value = false;
+      });
     }
 
     if (options.customOnClickHandler) {
@@ -99,29 +87,66 @@ export function useTrackToggle(options: UseTrackToggleProps): UseTrackToggle {
     }
   }
 
-  watch(
-    () => enabled.value,
-    (enabled) => {
-      options?.onChange?.(enabled, userInteractionRef.value);
-      userInteractionRef.value = false;
-    },
-  );
+  watchEffect((onCleanup) => {
+    const toggleObserver = mediaToggle.value.enabledObserver;
+    if (!toggleObserver) {
+      return;
+    }
 
-  useSubscription(enabledObserver.value.subscribe((v) => (enabled.value = v)));
-  useSubscription(pendingObserver.value.subscribe((v) => (pending.value = v)));
+    const subscription = toggleObserver.subscribe({
+      next: (value) => {
+        enabled.value = value;
 
-  onMounted(() => {
-    if (options.initialState !== undefined) {
-      console.debug('forcing initial toggle state', options.source, options.initialState);
+        if (options.onChange) {
+          options.onChange(value, userInteraction.value);
+          userInteraction.value = false;
+        }
+      },
+      error: (err) => {
+        console.error('Error in enabled state observer:', err);
+      },
+    });
 
-      if (toggle) {
-        toggle(options.initialState).catch(() => (userInteractionRef.value = false));
-      }
+    onCleanup(() => subscription.unsubscribe());
+  });
+
+  watchEffect((onCleanup) => {
+    const pendingObserver = mediaToggle.value.pendingObserver;
+    if (!pendingObserver) {
+      return;
+    }
+
+    const subscription = pendingObserver.subscribe({
+      next: (value) => {
+        pending.value = value;
+      },
+      error: (err) => {
+        console.error('Error in pending state observer:', err);
+      },
+    });
+
+    onCleanup(() => subscription.unsubscribe());
+  });
+
+  watchEffect(() => {
+    if (options.initialState === undefined || !mediaToggle.value.toggle) {
+      return;
+    }
+
+    console.debug('Forcing initial toggle state:', options.source, options.initialState);
+
+    try {
+      mediaToggle.value.toggle(options.initialState).catch((error) => {
+        console.error('Failed to set initial state:', error);
+        userInteraction.value = false;
+      });
+    } catch (error) {
+      console.error('Error setting initial state:', error);
     }
   });
 
   return {
-    toggle: setupMediaToggleResult.value.toggle,
+    toggle: mediaToggle.value.toggle,
     enabled,
     pending,
     track,

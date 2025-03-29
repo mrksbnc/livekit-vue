@@ -1,13 +1,7 @@
 import { useEnsureRoomContext } from '@/context/room.context';
 import { roomAudioPlaybackAllowedObservable } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
-import { Observable } from 'rxjs';
-import { ref, type Ref } from 'vue';
-
-export type AudioPlaybackObservable = Observable<{
-  canPlayAudio: boolean;
-}>;
+import { computed, ref, watchEffect, type Ref } from 'vue';
 
 export type UseAudioPlayback = {
   canPlayAudio: Ref<boolean>;
@@ -17,17 +11,43 @@ export type UseAudioPlayback = {
 export function useAudioPlayback(room?: Room): UseAudioPlayback {
   const roomEnsured = useEnsureRoomContext(room);
 
-  const canPlayAudio = ref<boolean>(true);
+  const canPlayAudio = ref<boolean>(roomEnsured.value?.canPlaybackAudio ?? false);
 
-  async function startAudio() {
-    await roomEnsured.value.startAudio();
-  }
-
-  useSubscription(
-    roomAudioPlaybackAllowedObservable(roomEnsured.value).subscribe((evt) => {
-      canPlayAudio.value = evt.canPlayAudio;
-    }),
+  const observable = computed<ReturnType<typeof roomAudioPlaybackAllowedObservable> | null>(() =>
+    roomEnsured.value ? roomAudioPlaybackAllowedObservable(roomEnsured.value) : null,
   );
+
+  const startAudio = async (): Promise<void> => {
+    if (!roomEnsured.value) {
+      return;
+    }
+
+    try {
+      await roomEnsured.value.startAudio();
+    } catch (error) {
+      console.error('Failed to start audio playback:', error);
+    }
+  };
+
+  watchEffect((onCleanup) => {
+    const currentObservable = observable.value;
+    if (!currentObservable) {
+      return;
+    }
+
+    const subscription = currentObservable.subscribe({
+      next: (evt) => {
+        canPlayAudio.value = evt.canPlayAudio;
+      },
+      error: (err) => {
+        console.error('Audio playback observable error:', err);
+      },
+    });
+
+    onCleanup(() => {
+      subscription.unsubscribe();
+    });
+  });
 
   return {
     canPlayAudio,

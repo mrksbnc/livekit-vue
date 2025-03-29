@@ -1,5 +1,5 @@
 import type { LocalParticipant, RemoteParticipant, Room, RoomEvent } from 'livekit-client';
-import { computed, type Ref } from 'vue';
+import { computed, type ComputedRef } from 'vue';
 import { useLocalParticipant } from './useLocalParticipant';
 import { useRemoteParticipants } from './useRemoteParticipants';
 
@@ -8,21 +8,35 @@ export type UseParticipantsOptions = {
   room?: Room;
 };
 
-export type UseParticipants = {
-  participants: Ref<MixedParticipantArray>;
-};
-
 export type MixedParticipantArray = (RemoteParticipant | LocalParticipant)[];
 
+export type UseParticipants = {
+  participants: ComputedRef<MixedParticipantArray>;
+};
+
 export function useParticipants(options: UseParticipantsOptions = {}): UseParticipants {
-  const { participants } = useRemoteParticipants({
-    options,
-  });
-  const localParticipant = useLocalParticipant()?.localParticipant;
-
-  const p = computed<(RemoteParticipant | LocalParticipant)[]>(() => {
-    return [localParticipant.value, ...participants.value] as MixedParticipantArray;
+  const { participants: remoteParticipants } = useRemoteParticipants({
+    updateOnlyOn: options.updateOnlyOn,
+    room: options.room,
   });
 
-  return { participants: p };
+  const { localParticipant } = useLocalParticipant({
+    room: options.room,
+  });
+
+  const participants = computed<MixedParticipantArray>(() => {
+    const result: MixedParticipantArray = [];
+
+    if (localParticipant.value) {
+      result.push(localParticipant.value as LocalParticipant);
+    }
+
+    if (remoteParticipants.value?.length) {
+      result.push(...(remoteParticipants.value as RemoteParticipant[]));
+    }
+
+    return result;
+  });
+
+  return { participants };
 }

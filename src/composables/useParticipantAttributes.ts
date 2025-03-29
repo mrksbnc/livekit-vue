@@ -1,18 +1,11 @@
 import { useEnsureParticipant, useMaybeParticipantContext } from '@/context';
 import { participantAttributesObserver } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import type { Participant } from 'livekit-client';
-import type { Observable } from 'rxjs';
-import { computed, ref, shallowRef, type Ref } from 'vue';
+import { ref, shallowRef, watchEffect, type Ref } from 'vue';
 
 export type UseParticipantAttributesOptions = {
   participant?: Participant;
 };
-
-export type AttributeObservable = Observable<{
-  changed: Readonly<Record<string, string>>;
-  attributes: Readonly<Record<string, string>>;
-}>;
 
 export type UseParticipantAttribute = {
   attribute: Ref<string | undefined>;
@@ -26,16 +19,28 @@ export function useParticipantAttribute(
   attributeKey: string,
   options: UseParticipantAttributesOptions = {},
 ): UseParticipantAttribute {
-  const p = useEnsureParticipant(options.participant);
-  const attribute = ref(p.value?.attributes[attributeKey]);
+  const participant = useEnsureParticipant(options.participant);
+  const attribute = ref<string | undefined>(participant.value?.attributes[attributeKey]);
 
-  useSubscription(
-    participantAttributesObserver(p.value).subscribe((attr) => {
-      if (attr.changed[attributeKey] !== undefined) {
-        attribute.value = attr.attributes[attributeKey];
-      }
-    }),
-  );
+  watchEffect((onCleanup) => {
+    if (!participant.value) return;
+
+    const observer = participantAttributesObserver(participant.value);
+    if (!observer) return;
+
+    const subscription = observer.subscribe({
+      next: (attr) => {
+        if (attr.changed[attributeKey] !== undefined) {
+          attribute.value = attr.attributes[attributeKey];
+        }
+      },
+      error: (err) => {
+        console.error('Error in attribute observer:', err);
+      },
+    });
+
+    onCleanup(() => subscription.unsubscribe());
+  });
 
   return { attribute };
 }
@@ -44,22 +49,28 @@ export function useParticipantAttributes(
   props: UseParticipantAttributesOptions = {},
 ): UseParticipantAttributes {
   const participantContext = useMaybeParticipantContext();
-  const p = shallowRef(props.participant) ?? participantContext?.value;
-
-  const attributes = ref(p.value?.attributes);
-
-  const attributeObserver = computed<AttributeObservable>(
-    () =>
-      (p.value
-        ? participantAttributesObserver(p.value)
-        : participantAttributesObserver(p.value)) as unknown as AttributeObservable,
+  const participant = props.participant ? shallowRef(props.participant) : participantContext;
+  const attributes = ref<Readonly<Record<string, string>> | undefined>(
+    participant?.value?.attributes,
   );
 
-  useSubscription(
-    attributeObserver.value.subscribe((attr) => {
-      attributes.value = attr.attributes;
-    }),
-  );
+  watchEffect((onCleanup) => {
+    if (!participant?.value) return;
+
+    const observer = participantAttributesObserver(participant.value);
+    if (!observer) return;
+
+    const subscription = observer.subscribe({
+      next: (attr) => {
+        attributes.value = attr.attributes;
+      },
+      error: (err) => {
+        console.error('Error in attributes observer:', err);
+      },
+    });
+
+    onCleanup(() => subscription.unsubscribe());
+  });
 
   return { attributes };
 }
