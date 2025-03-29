@@ -14,7 +14,10 @@ export type UseSettingsToggle = {
 export function useSettingsToggle(): UseSettingsToggle {
   const layoutContext = useCreateLayoutContext();
 
-  const isVisible = computed<boolean>(() => !!layoutContext.widget?.showSettings);
+  const isVisible = computed<boolean>(() => {
+    const widgetState = layoutContext.widget.state.value;
+    return !!widgetState.showSettings;
+  });
 
   const toggle = (): void => {
     layoutContext.widget.dispatch({ msg: 'toggle_settings' });

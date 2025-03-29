@@ -26,8 +26,8 @@ export type UseParticipantTile = {
   onClick: () => void;
 };
 
-export function useParticipantTile(options: UseParticipantTileProps): UseParticipantTile {
-  const trackReference = useEnsureTrackRef(options.trackRef);
+export function useParticipantTile(props: UseParticipantTileProps): UseParticipantTile {
+  const trackReference = useEnsureTrackRef(props.trackRef);
 
   const micRef = computed<TrackReferenceOrPlaceholder>(() => ({
     participant: trackReference.value.participant,
@@ -35,27 +35,33 @@ export function useParticipantTile(options: UseParticipantTileProps): UsePartici
     publication: trackReference.value.participant?.getTrackPublication(Track.Source.Microphone),
   }));
 
-  const { isMuted: isVideoMuted } = useIsMuted(trackReference.value);
-  const { isMuted: isAudioMuted } = useIsMuted(micRef.value);
-  const { isSpeaking } = useIsSpeaking(trackReference.value.participant);
+  const { isMuted: isVideoMuted } = useIsMuted({
+    sourceOrTrackRef: trackReference.value,
+    participant: trackReference.value.participant,
+  });
+  const { isMuted: isAudioMuted } = useIsMuted({
+    sourceOrTrackRef: micRef.value,
+    participant: trackReference.value.participant,
+  });
+  const { isSpeaking } = useIsSpeaking({ participant: trackReference.value.participant });
   const { facingMode } = useFacingMode({ trackReference: trackReference.value });
 
   const attributes = computed<ParticipantTileAttributes>(() => ({
     'data-lk-audio-muted': isAudioMuted.value,
     'data-lk-video-muted': isVideoMuted.value,
-    'data-lk-speaking': options.disableSpeakingIndicator === true ? false : isSpeaking.value,
+    'data-lk-speaking': props.disableSpeakingIndicator === true ? false : isSpeaking.value,
     'data-lk-local-participant': trackReference.value.participant?.isLocal ?? false,
     'data-lk-source': trackReference.value.source ?? Track.Source.Unknown,
     'data-lk-facing-mode': facingMode.value,
   }));
 
   function onClick(): void {
-    if (typeof options.onParticipantClick === 'function' && trackReference.value.participant) {
+    if (typeof props.onParticipantClick === 'function' && trackReference.value.participant) {
       const track =
         trackReference.value.publication ??
         trackReference.value.participant.getTrackPublication(trackReference.value.source);
 
-      options.onParticipantClick({
+      props.onParticipantClick({
         participant: trackReference.value.participant,
         track,
       });

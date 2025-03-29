@@ -1,4 +1,6 @@
 export { useAudioPlayback, type UseAudioPlayback } from './useAudioPlayback';
+export { useChat, type UseChat, type UseChatProps } from './useChat';
+export { useChatToggle, type ChatToggleAttributes, type UseChatToggle } from './useChatToggle';
 export {
   useClearPinButton,
   type ClearPinButtonProps,
@@ -22,8 +24,8 @@ export {
 export { useDataChannel, type UseDataChannel, type UseDataChannelProps } from './useDataChannel';
 export {
   useDisconnectButton,
-  type DisconnectButtonProps,
   type UseDisconnectButton,
+  type UseDisconnectButtonProps,
 } from './useDisconnectButton';
 export {
   FacingMode,
@@ -124,6 +126,11 @@ export {
   type UsePinnedTracksProps,
 } from './usePinnedTracks';
 export {
+  usePreviewTracks,
+  type UsePreviewTracks,
+  type UsePreviewTracksProps,
+} from './usePreviewTracks';
+export {
   useRemoteParticipant,
   type UseRemoteParticipant,
   type UseRemoteParticipantOptions,
@@ -148,6 +155,14 @@ export {
 export { useSpeakingParticipants, type UseSpeakingParticipants } from './useSpeakingParticipants';
 export { useStartAudio, type UseStartAudio, type UseStartAudioProps } from './useStartAudio';
 export { useStartVideo, type UseStartVideo, type UseStartVideoProps } from './useStartVideo';
+export { useSwipe, type UseSwipeOptions } from './useSwipe';
+export {
+  useTextStream,
+  type TextStreamInfo,
+  type UseTextStream,
+  type UseTextStreamProps,
+} from './useTextStream';
+export { useToast, type UseToast } from './useToast';
 export {
   useToken,
   type UseToken,

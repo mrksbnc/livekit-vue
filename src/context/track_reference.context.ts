@@ -1,29 +1,38 @@
 import type { TrackReference, TrackReferenceOrPlaceholder } from '@livekit/components-core';
 import { createInjectionState } from '@vueuse/core';
 import { shallowRef, type ShallowRef } from 'vue';
+import { NoContextDataProvidedError } from './error';
 
-const [useTrackRefContextProvider, useTrackRefContext] = createInjectionState(
-  (ref: TrackReference | TrackReferenceOrPlaceholder): ShallowRef<TrackReferenceOrPlaceholder> => {
-    const trackRef = shallowRef(ref);
+export type TrackRefContext = ShallowRef<TrackReferenceOrPlaceholder>;
 
-    return trackRef;
+const [useProvideTrackRefContext, useTrackRefContextRaw] = createInjectionState(
+  (ref: TrackReference | TrackReferenceOrPlaceholder): TrackRefContext => {
+    return shallowRef(ref);
   },
 );
 
-export function useMaybeTrackRefContext(): ShallowRef<TrackReferenceOrPlaceholder> | undefined {
-  return useTrackRefContext();
+export { useProvideTrackRefContext, useTrackRefContextRaw };
+
+export function useMaybeTrackRefContext(): TrackRefContext | undefined {
+  return useTrackRefContextRaw();
 }
 
-export function useEnsureTrackRef(
-  trackRef?: TrackReferenceOrPlaceholder,
-): ShallowRef<TrackReferenceOrPlaceholder> {
-  const t = trackRef ? shallowRef(trackRef) : useTrackRefContext();
+export function useTrackRefContext(): TrackRefContext {
+  const context = useMaybeTrackRefContext();
 
-  if (!t || !t.value) {
-    throw new Error('Please call `useTrackRefContextProvider` on the appropriate parent component');
+  if (!context) {
+    throw new NoContextDataProvidedError(
+      'Please call `useProvideTrackRefContext` on the appropriate parent component',
+    );
   }
 
-  return t;
+  return context;
 }
 
-export { useTrackRefContext, useTrackRefContextProvider };
+export function useEnsureTrackRef(trackRef?: TrackReferenceOrPlaceholder): TrackRefContext {
+  if (trackRef) {
+    return shallowRef(trackRef);
+  }
+
+  return useTrackRefContext();
+}

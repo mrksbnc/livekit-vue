@@ -1,62 +1,62 @@
-import type { PinState, TrackReferenceOrPlaceholder } from '@livekit/components-core';
 import { createInjectionState } from '@vueuse/core';
-import { shallowRef, type ShallowRef } from 'vue';
+import { computed, shallowRef, type ShallowRef } from 'vue';
+import type { PinContext } from './pin.context';
 import { usePinContext } from './pin.context';
+import type { WidgetContext } from './widget.context';
 import { useWidgetContext } from './widget.context';
 
-export type LayoutContextAction =
-  | {
-      msg: 'set_pin';
-      trackReference: TrackReferenceOrPlaceholder;
-    }
-  | { msg: 'clear_pin' }
-  | { msg: 'toggle_settings' };
-
-export function pinReducer(state: PinState, action: LayoutContextAction): PinState {
-  if (action.msg === 'set_pin') {
-    return [action.trackReference];
-  } else if (action.msg === 'clear_pin') {
-    return [];
-  } else {
-    return { ...state };
-  }
-}
-
-export type LayoutState = {
-  pin: ReturnType<typeof usePinContext>;
-  widget: ReturnType<typeof useWidgetContext>;
+export type LayoutContext = {
+  pin: PinContext;
+  widget: WidgetContext;
 };
 
-const [useProvideLayoutContext, useLayoutContext] = createInjectionState(
-  (initialValue: LayoutState): ShallowRef<LayoutState> => {
-    const state = shallowRef(initialValue);
-
-    return state;
+const [useProvideLayoutContext, useLayoutContextRaw] = createInjectionState(
+  (initialState?: LayoutContext): ShallowRef<LayoutContext> => {
+    return shallowRef<LayoutContext>(initialState ?? createLayoutContext());
   },
 );
 
-export { useLayoutContext, useProvideLayoutContext };
+export function useLayoutContext(): ShallowRef<LayoutContext> {
+  const context = useLayoutContextRaw();
+  if (!context) {
+    throw new Error(
+      'Layout context not found. Make sure you have a LayoutContextProvider in your component tree.',
+    );
+  }
+  return context;
+}
 
-export function useMaybeLayoutContext(): ShallowRef<LayoutState> | undefined {
+export { useLayoutContextRaw, useProvideLayoutContext };
+
+export function useMaybeLayoutContext(): ShallowRef<LayoutContext> | undefined {
+  return useLayoutContextRaw();
+}
+
+export function useEnsureLayoutContext(layoutContext?: LayoutContext): ShallowRef<LayoutContext> {
+  if (layoutContext) {
+    return shallowRef(layoutContext);
+  }
+
   return useLayoutContext();
 }
 
-export function useEnsureLayoutContext(layoutContext?: LayoutState) {
-  const lc = layoutContext ? shallowRef(layoutContext) : useLayoutContext();
-
-  if (!lc) {
-    throw Error('Tried to access LayoutContext context outside a LayoutContextProvider provider.');
-  }
-  return lc;
-}
-
-export function useCreateLayoutContext(): LayoutState {
+export function createLayoutContext(): LayoutContext {
   return {
     pin: usePinContext(),
     widget: useWidgetContext(),
   };
 }
 
-export function useEnsureCreateLayoutContext(layoutContext?: LayoutState) {
-  return shallowRef(layoutContext) ?? useCreateLayoutContext();
+export function useCreateLayoutContext(): LayoutContext {
+  return createLayoutContext();
+}
+
+export function useEnsureCreateLayoutContext(
+  layoutContext?: LayoutContext,
+): ShallowRef<LayoutContext> {
+  if (layoutContext) {
+    return shallowRef(layoutContext);
+  }
+
+  return computed(() => createLayoutContext());
 }

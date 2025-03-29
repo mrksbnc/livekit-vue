@@ -1,33 +1,38 @@
 import { createInjectionState } from '@vueuse/core';
 import type { Participant } from 'livekit-client';
 import { shallowRef, type ShallowRef } from 'vue';
+import { NoContextDataProvidedError } from './error';
 
-export type ParticipantContext = {
-  participant: Participant;
-};
+export type ParticipantContext = ShallowRef<Participant>;
 
-const [useProvideParticipantContext, useParticipantContext] = createInjectionState(
-  (initialValue: Participant): ShallowRef<Participant> => {
-    const participant = shallowRef(initialValue);
-
-    return participant;
+const [useProvideParticipantContext, useParticipantContextRaw] = createInjectionState(
+  (initialValue: Participant): ParticipantContext => {
+    return shallowRef(initialValue);
   },
 );
 
-export function useMaybeParticipantContext(): ShallowRef<Participant> | undefined {
-  return useParticipantContext();
+export { useParticipantContextRaw, useProvideParticipantContext };
+
+export function useMaybeParticipantContext(): ParticipantContext | undefined {
+  return useParticipantContextRaw();
 }
 
-export function useEnsureParticipant(participant?: Participant): ShallowRef<Participant> {
-  const r = participant ? shallowRef(participant) : useParticipantContext();
+export function useParticipantContext(): ParticipantContext {
+  const context = useMaybeParticipantContext();
 
-  if (!r || !r.value) {
-    throw new Error(
+  if (!context) {
+    throw new NoContextDataProvidedError(
       'Please call `useProvideParticipantContext` on the appropriate parent component',
     );
   }
 
-  return r;
+  return context;
 }
 
-export { useParticipantContext, useProvideParticipantContext };
+export function useEnsureParticipant(participant?: Participant): ParticipantContext {
+  if (participant) {
+    return shallowRef(participant);
+  }
+
+  return useParticipantContext();
+}

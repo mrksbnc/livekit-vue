@@ -21,9 +21,10 @@ export function useFocusToggle(props: FocusToggleProps): UseFocusToggle {
   const trackReference = useEnsureTrackRef(props.trackRef);
   const layoutContext = useMaybeLayoutContext();
 
-  const inFocus = computed<boolean>(() =>
-    isTrackReferencePinned(trackReference.value, layoutContext?.value?.pin.state),
-  );
+  const inFocus = computed<boolean>(() => {
+    const pinState = layoutContext?.value?.pin.state.value;
+    return isTrackReferencePinned(trackReference.value, pinState);
+  });
 
   const attributes = computed<FocusToggleAttributes>(() => ({
     'data-lk-toggle-focused': inFocus.value,
@@ -31,11 +32,11 @@ export function useFocusToggle(props: FocusToggleProps): UseFocusToggle {
 
   function onClick(): void {
     if (inFocus.value) {
-      layoutContext?.value?.pin.dispatch?.({
+      layoutContext?.value?.pin.dispatch({
         msg: 'clear_pin',
       });
     } else {
-      layoutContext?.value?.pin.dispatch?.({
+      layoutContext?.value?.pin.dispatch({
         msg: 'set_pin',
         trackReference: trackReference.value,
       });

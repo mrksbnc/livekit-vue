@@ -1,9 +1,9 @@
 import type { TrackReferenceOrPlaceholder } from '@livekit/components-core';
 import { computed, ref, watchEffect, type ComputedRef, type MaybeRef, type Ref } from 'vue';
-import { useVisualStableUpdate, type UseVisualStableUpdateOptions } from './useVisualStableUpdate';
+import { useVisualStableUpdate, type UseVisualStableUpdateProps } from './useVisualStableUpdate';
 
 export type UsePaginationOptions = {
-  customSortFunction?: UseVisualStableUpdateOptions['customSortFunction'];
+  customSortFunction?: UseVisualStableUpdateProps['customSortFunction'];
   /**
    * Initial page to show (defaults to 1)
    */
