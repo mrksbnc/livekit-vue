@@ -27,8 +27,7 @@ export function useConnectionQualityIndicator(
       return;
     }
 
-    const currentSetup = setupConnectionQualityIndicator(currentParticipant);
-    const subscription = currentSetup.connectionQualityObserver.subscribe({
+    const subscription = setup.value.connectionQualityObserver.subscribe({
       next: (q: ConnectionQuality): void => {
         quality.value = q;
       },
