@@ -1,0 +1,104 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Type of version change'
+        required: true
+        default: 'patch'
+        type: 'choice'
+        options:
+          - patch
+          - minor
+          - major
+          - premajor
+          - preminor
+          - prepatch
+          - prerelease
+      prerelease_tag:
+        description: 'Prerelease tag (for pre* version types)'
+        required: false
+        type: 'string'
+      release_branch:
+        description: 'Branch to release from'
+        required: true
+        default: 'main'
+        type: 'string'
+
+jobs:
+  manual_release:
+    name: Manual Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.release_branch }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Setup Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create Version Bump Changeset
+        run: |
+          VERSION_TYPE="${{ github.event.inputs.version_type }}"
+          PRERELEASE_TAG="${{ github.event.inputs.prerelease_tag }}"
+
+          # Create a temporary changeset file
+          CHANGESET_ID=$(openssl rand -hex 6)
+          mkdir -p .changeset
+
+          if [[ "$VERSION_TYPE" == pre* && -n "$PRERELEASE_TAG" ]]; then
+            echo "Creating prerelease changeset with tag: $PRERELEASE_TAG"
+            echo '{"$schema":"https://unpkg.com/@changesets/config@3.0.0/schema.json","changelog":"@changesets/cli/changelog","commit":false,"access":"restricted","baseBranch":"main","updateInternalDependencies":"patch","ignore":[],"___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH":{"onlyUpdatePeerDependentsWhenOutOfRange":true},"snapshot":{"useCalculatedVersion":true},"fixed":[]}' > .changeset/config.json
+            pnpm changeset pre enter $PRERELEASE_TAG
+          fi
+
+          # Create changeset file based on version type
+          cat > .changeset/$CHANGESET_ID.md << EOF
+          ---
+          "@mrksbnc/livekit-vue": $VERSION_TYPE
+          ---
+
+          Manual $VERSION_TYPE release triggered from GitHub Actions
+          EOF
+
+      - name: Apply Changeset
+        run: pnpm changeset version
+
+      - name: Build Package
+        run: pnpm build:prod
+
+      - name: Publish to NPM
+        run: pnpm changeset publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Push Changes
+        run: |
+          # If we're dealing with a prerelease, make sure we're not on a pre-branch
+          if [[ "${{ github.event.inputs.version_type }}" == pre* ]]; then
+            # Check if we need to exit pre mode
+            if [[ "${{ github.event.inputs.version_type }}" != "prerelease" ]]; then
+              pnpm changeset pre exit
+            fi
+          fi
+
+          git push --follow-tags
