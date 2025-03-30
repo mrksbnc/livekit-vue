@@ -87,7 +87,12 @@ jobs:
       - name: Build Package
         run: pnpm build:prod
 
-      - name: Publish to NPM Registry
+      - name: Publish package to NPM
+        run: pnpm publish
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish changeset to NPM
         run: pnpm changeset publish
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
