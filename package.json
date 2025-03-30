@@ -36,22 +36,19 @@
     "build:prod": "vite optimize --force && vite build --mode production",
     "preview": "vite preview",
     "test:unit": "vitest --coverage",
-    "type-check": "vue-tsc --build",
+    "type-check": "vue-tsc --noEmit",
     "lint:oxlint": "oxlint . --fix -D correctness --ignore-path .gitignore",
     "lint:eslint": "eslint . --fix",
     "lint": "run-s lint:*",
     "preinstall": "npx only-allow pnpm",
     "format": "prettier --write src/",
-    "format:check": "prettier --check src/",
-    "changeset:publish": "pnpm build:prod && changeset publish"
+    "format:check": "prettier --check src/"
   },
   "dependencies": {
     "@livekit/components-core": "^0.12.2",
     "@livekit/protocol": "^1.36.1",
     "@vueuse/core": "^13.0.0",
-    "@vueuse/rxjs": "^13.0.0",
     "livekit-client": "^2.9.9",
-    "rxjs": "^7.8.2",
     "vue": "^3.5.13"
   },
   "devDependencies": {

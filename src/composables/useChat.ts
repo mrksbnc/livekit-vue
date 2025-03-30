@@ -6,9 +6,8 @@ import { useConnectionStatus } from './useConnectionStatus';
 
 export type UseChat = {
   chatMessages: Ref<ReceivedChatMessage[]>;
-  send: (message: string) => Promise<unknown>;
-  update: (messageId: string, message: string) => Promise<unknown>;
   isSending: Ref<boolean>;
+  send: (message: string) => Promise<unknown>;
 };
 
 export type UseChatProps = {
@@ -26,22 +25,12 @@ export function useChat(props: UseChatProps = {}): UseChat {
     () => connectionState.value === ConnectionState.Disconnected,
   );
 
-  const chatHandler = computed<ReturnType<typeof setupChat>>(() =>
+  const chatSetup = computed<ReturnType<typeof setupChat>>(() =>
     setupChat(room.value, props.options),
   );
 
-  const send = (message: string): Promise<unknown> => {
-    return chatHandler.value.send(message);
-  };
-
-  const update = (messageId: string, message: string): Promise<unknown> => {
-    return chatHandler.value.update(messageId, message);
-  };
-
   watchEffect((onCleanup) => {
-    const handler = chatHandler.value;
-
-    const messagesSub = handler.messageObservable.subscribe({
+    const messagesSub = chatSetup.value.messageObservable.subscribe({
       next: (messages: ReceivedChatMessage[]) => {
         chatMessagesRef.value = messages;
       },
@@ -53,8 +42,16 @@ export function useChat(props: UseChatProps = {}): UseChat {
       },
     });
 
-    const sendingSub = handler.isSendingObservable.subscribe((sending: boolean) => {
-      isSendingRef.value = sending;
+    const sendingSub = chatSetup.value.isSendingObservable.subscribe({
+      next: (isSending: boolean) => {
+        isSendingRef.value = isSending;
+      },
+      error: (error: Error) => {
+        console.error('Error subscribing to chat sending state:', error);
+      },
+      complete: () => {
+        console.log('Chat sending state subscription completed');
+      },
     });
 
     if (isDisconnected.value) {
@@ -68,9 +65,8 @@ export function useChat(props: UseChatProps = {}): UseChat {
   });
 
   return {
-    send,
-    update,
     isSending: isSendingRef,
     chatMessages: chatMessagesRef,
+    send: chatSetup.value.send,
   };
 }

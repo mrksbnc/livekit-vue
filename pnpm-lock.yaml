@@ -17,15 +17,9 @@ importers:
       '@vueuse/core':
         specifier: ^13.0.0
         version: 13.0.0(vue@3.5.13(typescript@5.8.2))
-      '@vueuse/rxjs':
-        specifier: ^13.0.0
-        version: 13.0.0(rxjs@7.8.2)(vue@3.5.13(typescript@5.8.2))
       livekit-client:
         specifier: ^2.9.9
         version: 2.9.9
-      rxjs:
-        specifier: ^7.8.2
-        version: 7.8.2
       vue:
         specifier: ^3.5.13
         version: 3.5.13(typescript@5.8.2)
@@ -1184,12 +1178,6 @@ packages:
 
   '@vueuse/metadata@13.0.0':
     resolution: {integrity: sha512-TRNksqmvtvqsuHf7bbgH9OSXEV2b6+M3BSN4LR5oxWKykOFT9gV78+C2/0++Pq9KCp9KQ1OQDPvGlWNQpOb2Mw==}
-
-  '@vueuse/rxjs@13.0.0':
-    resolution: {integrity: sha512-WnnjNsI9HL1sBzFtkqEfZoN1f4hkEaoZRFyZBniaq2G85EAIPUL+4RnGQZlYwPNeIdYWZvRt6smxHMmpCEpWMQ==}
-    peerDependencies:
-      rxjs: '>=6.0.0'
-      vue: ^3.5.0
 
   '@vueuse/shared@13.0.0':
     resolution: {integrity: sha512-9MiHhAPw+sqCF/RLo8V6HsjRqEdNEWVpDLm2WBRW2G/kSQjb8X901sozXpSCaeLG0f7TEfMrT4XNaA5m1ez7Dg==}
@@ -4230,12 +4218,6 @@ snapshots:
       vue: 3.5.13(typescript@5.8.2)
 
   '@vueuse/metadata@13.0.0': {}
-
-  '@vueuse/rxjs@13.0.0(rxjs@7.8.2)(vue@3.5.13(typescript@5.8.2))':
-    dependencies:
-      '@vueuse/shared': 13.0.0(vue@3.5.13(typescript@5.8.2))
-      rxjs: 7.8.2
-      vue: 3.5.13(typescript@5.8.2)
 
   '@vueuse/shared@13.0.0(vue@3.5.13(typescript@5.8.2))':
     dependencies:
