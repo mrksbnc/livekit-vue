@@ -1,60 +1,67 @@
 import { useEnsureRoomContext } from '@/context/room.context';
 import { setupDataMessageHandler, type ReceivedDataMessage } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
-import type { DataPublishOptions, RemoteParticipant } from 'livekit-client';
-import { computed, ref, toRefs, type ShallowRef } from 'vue';
+import type { DataPublishOptions } from 'livekit-client';
+import { computed, ref, shallowRef, watchEffect, type Ref, type ShallowRef } from 'vue';
 
-export type MessagePayload<T> = {
-  payload: Uint8Array;
-  topic: T;
-  from: RemoteParticipant | undefined;
+export type UseDataChannelProps<T extends string | undefined = undefined> = {
+  topic?: T;
+  onMessage?: (msg: ReceivedDataMessage<T>) => void;
 };
 
-export type UseDataChannelReturnType<T extends string | undefined = undefined> = {
-  isSending: ShallowRef<boolean>;
-  send: ShallowRef<(payload: Uint8Array, options?: DataPublishOptions) => Promise<void>>;
-  message: ShallowRef<MessagePayload<T> | undefined>;
+export type UseDataChannel<T extends string | undefined = undefined> = {
+  isSending: Ref<boolean>;
+  send: (payload: Uint8Array, options?: DataPublishOptions) => Promise<void>;
+  message: ShallowRef<ReceivedDataMessage<T> | undefined>;
 };
 
+export function useDataChannel<T extends string>(props: UseDataChannelProps<T>): UseDataChannel<T>;
+export function useDataChannel(onMessage?: (msg: ReceivedDataMessage) => void): UseDataChannel;
 export function useDataChannel<T extends string>(
-  topic: T,
-  onMessage?: (msg: ReceivedDataMessage<T>) => void,
-): UseDataChannelReturnType<T>;
-export function useDataChannel(
-  onMessage?: (msg: ReceivedDataMessage) => void,
-): UseDataChannelReturnType;
-export function useDataChannel<T extends string>(
-  topicOrCallback?: T | ((msg: ReceivedDataMessage) => void),
+  topicOrCallbackOrProps?: T | ((msg: ReceivedDataMessage) => void) | UseDataChannelProps<T>,
   callback?: (msg: ReceivedDataMessage<T>) => void,
-): UseDataChannelReturnType<T> {
-  const onMessage = typeof topicOrCallback === 'function' ? topicOrCallback : callback;
-  const topic = typeof topicOrCallback === 'string' ? topicOrCallback : undefined;
+): UseDataChannel<T> {
+  let onMessage: ((msg: ReceivedDataMessage<T>) => void) | undefined;
+  let topic: T | undefined;
+
+  if (typeof topicOrCallbackOrProps === 'function') {
+    onMessage = topicOrCallbackOrProps as (msg: ReceivedDataMessage<T>) => void;
+  } else if (typeof topicOrCallbackOrProps === 'object' && topicOrCallbackOrProps !== null) {
+    const props = topicOrCallbackOrProps as UseDataChannelProps<T>;
+    topic = props.topic;
+    onMessage = props.onMessage;
+  } else {
+    topic = topicOrCallbackOrProps as T | undefined;
+    onMessage = callback;
+  }
+
   const room = useEnsureRoomContext();
-
   const isSending = ref<boolean>(false);
-  const message = ref<MessagePayload<T> | undefined>(undefined);
+  const message = shallowRef<ReceivedDataMessage<T> | undefined>(undefined);
 
-  const messageHandler = computed(() => {
-    return setupDataMessageHandler(room?.value, topic, onMessage);
+  const dataHandler = computed<ReturnType<typeof setupDataMessageHandler>>(() =>
+    setupDataMessageHandler(room.value, topic, onMessage),
+  );
+
+  const send = (payload: Uint8Array, options?: DataPublishOptions): Promise<void> => {
+    return dataHandler.value.send(payload, options);
+  };
+
+  watchEffect((onCleanup) => {
+    const handler = dataHandler.value;
+
+    const msgSub = handler.messageObservable.subscribe((receivedMsg) => {
+      message.value = receivedMsg as unknown as ReceivedDataMessage<T>;
+    });
+
+    const sendSub = handler.isSendingObservable.subscribe((status) => {
+      isSending.value = status;
+    });
+
+    onCleanup(() => {
+      msgSub.unsubscribe();
+      sendSub.unsubscribe();
+    });
   });
 
-  const { send, messageObservable, isSendingObservable } = toRefs(messageHandler.value);
-
-  useSubscription(
-    messageObservable.value.subscribe((msg) => {
-      message.value = msg;
-    }),
-  );
-
-  useSubscription(
-    isSendingObservable.value.subscribe((sending) => {
-      isSending.value = sending;
-    }),
-  );
-
-  return {
-    message: message as ShallowRef<MessagePayload<T> | undefined>,
-    send,
-    isSending,
-  };
+  return { message, send, isSending };
 }

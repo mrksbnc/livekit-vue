@@ -1,41 +1,47 @@
 import { useEnsureParticipant } from '@/context/participant.context';
 import { setupConnectionQualityIndicator } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import { ConnectionQuality, type Participant } from 'livekit-client';
-import { computed, ref, toRefs, type ShallowRef } from 'vue';
+import { computed, ref, watchEffect, type Ref } from 'vue';
 
-export type ConnectionQualityIndicatorOptions = {
+export type ConnectionQualityIndicatorProps = {
   participant?: Participant;
 };
 
-export type ConnectionQualityIndicatorReturnType = {
-  className: ShallowRef<string>;
-  quality: ShallowRef<ConnectionQuality>;
+export type UseConnectionQualityIndicator = {
+  quality: Ref<ConnectionQuality>;
 };
 
 export function useConnectionQualityIndicator(
-  options: ConnectionQualityIndicatorOptions = {},
-): ConnectionQualityIndicatorReturnType {
-  const p = useEnsureParticipant(options.participant);
-
+  props: ConnectionQualityIndicatorProps = {},
+): UseConnectionQualityIndicator {
+  const participant = useEnsureParticipant(props.participant);
   const quality = ref<ConnectionQuality>(ConnectionQuality.Unknown);
 
-  const setupConnectionQualityIndicatorResult = computed(() =>
-    setupConnectionQualityIndicator(p.value),
+  const setup = computed<ReturnType<typeof setupConnectionQualityIndicator>>(() =>
+    setupConnectionQualityIndicator(participant.value),
   );
 
-  const { className, connectionQualityObserver } = toRefs(
-    setupConnectionQualityIndicatorResult.value,
-  );
+  watchEffect((onCleanup): void => {
+    const currentParticipant = participant.value;
+    if (!currentParticipant) {
+      return;
+    }
 
-  useSubscription(
-    connectionQualityObserver.value.subscribe((q) => {
-      quality.value = q;
-    }),
-  );
+    const subscription = setup.value.connectionQualityObserver.subscribe({
+      next: (q: ConnectionQuality): void => {
+        quality.value = q;
+      },
+      error: (err: Error): void => {
+        console.error('Connection quality observer error:', err);
+      },
+    });
+
+    onCleanup((): void => {
+      subscription.unsubscribe();
+    });
+  });
 
   return {
-    className,
     quality,
   };
 }

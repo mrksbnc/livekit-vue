@@ -4,39 +4,64 @@ import {
   participantByIdentifierObserver,
   type ParticipantIdentifier,
 } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
-import type { Participant, ParticipantEvent, RemoteParticipant, Room } from 'livekit-client';
-import { computed, ref, type Ref, type ShallowRef } from 'vue';
+import type { ParticipantEvent, RemoteParticipant } from 'livekit-client';
+import { computed, shallowRef, watchEffect, type Ref } from 'vue';
 
 export type UseRemoteParticipantOptions = {
   updateOnlyOn?: ParticipantEvent[];
 };
 
-export function useRemoteParticipant(
-  identityOrIdentifier: string | ParticipantIdentifier,
-  options: UseRemoteParticipantOptions = {},
-): ShallowRef<Participant | undefined> {
-  const room: Ref<Room> = useEnsureRoomContext();
-  const updateOnlyOn: Ref<ParticipantEvent[]> = ref(options.updateOnlyOn ?? []);
-  const participant: Ref<RemoteParticipant | undefined> = ref(undefined);
+export type UseRemoteParticipantProps = {
+  identityOrIdentifier: string | ParticipantIdentifier;
+  options: UseRemoteParticipantOptions;
+};
 
-  const observable = computed(() => {
-    if (typeof identityOrIdentifier === 'string') {
-      return connectedParticipantObserver(room.value, identityOrIdentifier, {
-        additionalEvents: updateOnlyOn.value,
-      });
-    } else {
-      return participantByIdentifierObserver(room.value, identityOrIdentifier, {
-        additionalEvents: updateOnlyOn.value,
-      });
+export type UseRemoteParticipant = {
+  participant: Ref<RemoteParticipant | undefined>;
+};
+
+export function useRemoteParticipant(props: UseRemoteParticipantProps): UseRemoteParticipant {
+  const room = useEnsureRoomContext();
+  const participant = shallowRef<RemoteParticipant | undefined>(undefined);
+
+  const observable = computed<
+    | ReturnType<typeof connectedParticipantObserver>
+    | ReturnType<typeof participantByIdentifierObserver>
+    | null
+  >(() => {
+    if (!room.value) {
+      return null;
     }
+
+    const additionalEvents = props.options.updateOnlyOn || [];
+
+    return typeof props.identityOrIdentifier === 'string'
+      ? connectedParticipantObserver(room.value, props.identityOrIdentifier, {
+          additionalEvents,
+        })
+      : participantByIdentifierObserver(room.value, props.identityOrIdentifier, {
+          additionalEvents,
+        });
   });
 
-  useSubscription(
-    observable.value.subscribe((p) => {
-      participant.value = p;
-    }),
-  );
+  watchEffect((onCleanup) => {
+    const currentObservable = observable.value;
+    if (!currentObservable) {
+      return;
+    }
 
-  return participant;
+    const subscription = currentObservable.subscribe({
+      next: (p) => {
+        participant.value = p;
+      },
+      error: (err) => {
+        console.error('Error in remote participant observer:', err);
+        participant.value = undefined;
+      },
+    });
+
+    onCleanup(() => subscription.unsubscribe());
+  });
+
+  return { participant };
 }

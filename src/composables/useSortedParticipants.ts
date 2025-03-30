@@ -1,21 +1,31 @@
 import { sortParticipants } from '@livekit/components-core';
 import type { Participant } from 'livekit-client';
-import { ref, watch, type ShallowRef } from 'vue';
+import { shallowRef, watchEffect, type ShallowRef } from 'vue';
 import { useSpeakingParticipants } from './useSpeakingParticipants';
 
-export function useSortedParticipants(participants: Array<Participant>): ShallowRef<Participant[]> {
-  const activeSpeakers = useSpeakingParticipants();
-  const sortedParticipants = ref<Participant[]>(sortParticipants(participants));
+export type UseSortedParticipants = {
+  sortedParticipants: ShallowRef<Participant[]>;
+};
 
-  watch(
-    [activeSpeakers, participants],
-    () => {
-      sortedParticipants.value = sortParticipants(participants);
-    },
-    {
-      deep: true,
-    },
+export type UseSortedParticipantsProps = {
+  participants: Participant[];
+};
+
+export function useSortedParticipants(props: UseSortedParticipantsProps): UseSortedParticipants {
+  const { activeSpeakers } = useSpeakingParticipants();
+
+  const sortedParticipants = shallowRef<Participant[]>(
+    sortParticipants([...props.participants, ...activeSpeakers.value]),
   );
 
-  return sortedParticipants as ShallowRef<Participant[]>;
+  watchEffect(() => {
+    if (!props.participants || props.participants.length === 0) {
+      sortedParticipants.value = [];
+      return;
+    }
+
+    sortedParticipants.value = sortParticipants(props.participants);
+  });
+
+  return { sortedParticipants };
 }

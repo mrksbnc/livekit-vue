@@ -9,9 +9,8 @@ import {
   type TrackReferencePlaceholder,
   type TrackSourceWithOptions,
 } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import { Participant, Track, type Room, type RoomEvent } from 'livekit-client';
-import { computed, ref } from 'vue';
+import { computed, shallowRef, watchEffect, type ComputedRef, type ShallowRef } from 'vue';
 
 export type UseTracksOptions = {
   updateOnlyOn?: RoomEvent[];
@@ -19,31 +18,38 @@ export type UseTracksOptions = {
   room?: Room;
 };
 
-export type UseTracksHookReturnType<T> = T extends Track.Source[]
-  ? TrackReference[]
-  : T extends TrackSourceWithOptions[]
-    ? TrackReferenceOrPlaceholder[]
-    : never;
+export type UseTracks<T extends SourcesArray = Track.Source[]> = {
+  trackReferences: T extends Track.Source[]
+    ? ShallowRef<TrackReference[]>
+    : T extends TrackSourceWithOptions[]
+      ? ComputedRef<TrackReferenceOrPlaceholder[]>
+      : never;
+};
 
 function difference<T>(setA: Set<T>, setB: Set<T>): Set<T> {
-  const _difference = new Set(setA);
+  const difference = new Set(setA);
+
   for (const elem of setB) {
-    _difference.delete(elem);
+    difference.delete(elem);
   }
-  return _difference;
+  return difference;
 }
 
-export function requiredPlaceholders<T extends SourcesArray>(
-  sources: T,
-  participants: Participant[],
+export type RequiredPlaceholdersProps = {
+  sources: SourcesArray;
+  participants: Participant[];
+};
+
+export function requiredPlaceholders(
+  props: RequiredPlaceholdersProps,
 ): Map<Participant['identity'], Track.Source[]> {
   const placeholderMap = new Map<Participant['identity'], Track.Source[]>();
-  if (isSourcesWithOptions(sources)) {
-    const sourcesThatNeedPlaceholder = sources
+  if (isSourcesWithOptions(props.sources)) {
+    const sourcesThatNeedPlaceholder = props.sources
       .filter((sourceWithOption) => sourceWithOption.withPlaceholder)
       .map((sourceWithOption) => sourceWithOption.source);
 
-    participants.forEach((participant) => {
+    for (const participant of props.participants) {
       const sourcesOfSubscribedTracks = participant
         .getTrackPublications()
         .map((pub) => pub.track?.source)
@@ -55,7 +61,7 @@ export function requiredPlaceholders<T extends SourcesArray>(
       if (placeholderNeededForThisParticipant.length > 0) {
         placeholderMap.set(participant.identity, placeholderNeededForThisParticipant);
       }
-    });
+    }
   }
   return placeholderMap;
 }
@@ -69,19 +75,21 @@ export function useTracks<T extends SourcesArray = Track.Source[]>(
     Track.Source.Unknown,
   ] as T,
   options: UseTracksOptions = {},
-): UseTracksHookReturnType<T> {
+): UseTracks<T> {
   const room = useEnsureRoomContext(options.room);
-  const trackReferences = ref<TrackReference[]>([]);
-  const participants = ref<Participant[]>([]);
+  const participants = shallowRef<Participant[]>([]);
+  const trackReferences = shallowRef<TrackReference[]>([]);
 
   const computedSources = computed<Track.Source[]>(() => {
     return sources.map((s) => (isSourceWitOptions(s) ? s.source : s));
   });
 
-  const maybeTrackReferences = computed(() => {
+  const computedTrackRefs = computed<TrackReferenceOrPlaceholder[] | TrackReference[]>(() => {
     if (isSourcesWithOptions(sources)) {
-      const requirePlaceholder = requiredPlaceholders(sources, participants.value as Participant[]);
-
+      const requirePlaceholder = requiredPlaceholders({
+        sources,
+        participants: participants.value as Participant[],
+      });
       const trackReferencesWithPlaceholders = Array.from(
         trackReferences.value,
       ) as TrackReferenceOrPlaceholder[];
@@ -116,17 +124,35 @@ export function useTracks<T extends SourcesArray = Track.Source[]>(
 
       return trackReferencesWithPlaceholders;
     } else {
-      return trackReferences;
+      return trackReferences.value;
     }
   });
 
-  useSubscription(
-    trackReferencesObservable(room.value, computedSources.value, {}).subscribe((data) => {
-      console.debug('setting track bundles', trackReferences, participants);
-      trackReferences.value = data.trackReferences;
-      participants.value = data.participants;
-    }),
-  );
+  watchEffect((onCleanup) => {
+    if (!room.value) {
+      return;
+    }
 
-  return maybeTrackReferences.value as UseTracksHookReturnType<T>;
+    const subscription = trackReferencesObservable(room.value, computedSources.value, {
+      additionalRoomEvents: options.updateOnlyOn,
+      onlySubscribed: options.onlySubscribed,
+    }).subscribe({
+      next: (data) => {
+        console.debug('Updating track references:', data);
+        trackReferences.value = data.trackReferences;
+        participants.value = data.participants;
+      },
+      error: (err) => {
+        console.error('Error in track references subscription:', err);
+      },
+    });
+
+    onCleanup(() => subscription.unsubscribe());
+  });
+
+  return {
+    trackReferences: (isSourcesWithOptions(sources)
+      ? computedTrackRefs
+      : trackReferences) as UseTracks<T>['trackReferences'],
+  };
 }

@@ -1,11 +1,9 @@
 import { useMaybeParticipantContext } from '@/context';
 import { participantInfoObserver } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import type { Participant } from 'livekit-client';
-import type { Observable } from 'rxjs';
-import { computed, onMounted, ref, type ShallowRef } from 'vue';
+import { ref, shallowRef, watchEffect, type Ref } from 'vue';
 
-export type UseParticipantInfoOptions = {
+export type UseParticipantInfoProps = {
   participant?: Participant;
 };
 
@@ -15,35 +13,45 @@ export type ParticipantInfo = {
   metadata: string | undefined;
 };
 
-export function useParticipantInfo(
-  props: UseParticipantInfoOptions = {},
-): ShallowRef<ParticipantInfo | undefined> {
-  const p = useMaybeParticipantContext();
+export type UseParticipantInfo = {
+  info: Ref<ParticipantInfo | undefined>;
+};
 
-  const data = ref<
-    | {
-        name: string | undefined;
-        identity: string;
-        metadata: string | undefined;
-      }
-    | undefined
-  >(undefined);
+export function useParticipantInfo(props: UseParticipantInfoProps = {}): UseParticipantInfo {
+  const contextParticipant = useMaybeParticipantContext();
+  const participant = props.participant ? shallowRef(props.participant) : contextParticipant;
 
-  const infoObserver = computed<Observable<ParticipantInfo>>(
-    () => participantInfoObserver(p?.value) as unknown as Observable<ParticipantInfo>,
+  const info = ref<ParticipantInfo | undefined>(
+    participant?.value
+      ? {
+          name: participant.value.name,
+          identity: participant.value.identity,
+          metadata: participant.value.metadata,
+        }
+      : undefined,
   );
 
-  useSubscription(
-    infoObserver.value?.subscribe((info) => {
-      data.value = info;
-    }),
-  );
-
-  onMounted(() => {
-    if (props.participant && p) {
-      p.value = props.participant;
+  watchEffect((onCleanup) => {
+    if (!participant?.value) {
+      return;
     }
+
+    const observer = participantInfoObserver(participant.value);
+    if (!observer) {
+      return;
+    }
+
+    const subscription = observer.subscribe({
+      next: (newInfo) => {
+        info.value = newInfo;
+      },
+      error: (err) => {
+        console.error('Error in participant info observer:', err);
+      },
+    });
+
+    onCleanup(() => subscription.unsubscribe());
   });
 
-  return data;
+  return { info };
 }

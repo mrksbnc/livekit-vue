@@ -1,4 +1,4 @@
-import { ref, watch, type ShallowRef } from 'vue';
+import { ref, watchEffect, type Ref } from 'vue';
 
 export type UserInfo = {
   identity?: string;
@@ -6,35 +6,67 @@ export type UserInfo = {
   metadata?: string;
 };
 
+export type UseTokenProps = {
+  identity?: string;
+  metadata?: string;
+};
+
 export type UseTokenOptions = {
   userInfo?: UserInfo;
 };
 
-export function useToken(
-  tokenEndpoint: string | undefined,
-  roomName: string,
-  options: UseTokenOptions = {},
-): ShallowRef<string | undefined> {
+export type UseTokenArgs = {
+  tokenEndpoint: string | undefined;
+  roomName: string;
+  options?: UseTokenOptions;
+};
+
+export type UseToken = {
+  token: Ref<string | undefined>;
+  getToken: (refreshToken?: boolean) => Promise<string | undefined>;
+};
+
+export function useToken(props: UseTokenArgs): UseToken {
   const token = ref<string | undefined>(undefined);
 
-  async function fetchToken() {
-    console.debug('fetching token');
-
-    const params = new URLSearchParams({ ...options.userInfo, roomName });
-    const res = await fetch(`${tokenEndpoint}?${params.toString()}`);
-
-    if (!res.ok) {
-      console.error(
-        `Could not fetch token. Server responded with status ${res.status}: ${res.statusText}`,
-      );
+  const fetchToken = async (): Promise<string | undefined> => {
+    if (!props.tokenEndpoint || !props.options?.userInfo?.identity) {
       return;
     }
 
-    const { accessToken } = await res.json();
-    token.value = accessToken;
-  }
+    try {
+      const params = new URLSearchParams({
+        ...props.options?.userInfo,
+        roomName: props.roomName,
+      });
 
-  watch([tokenEndpoint, roomName, options.userInfo], fetchToken);
+      const res = await fetch(`${props.tokenEndpoint}?${params.toString()}`);
 
-  return token;
+      if (!res.ok) {
+        console.error(`Token fetch failed: ${res.status} ${res.statusText}`);
+        return undefined;
+      }
+
+      const data = await res.json();
+      return data.accessToken;
+    } catch (err) {
+      console.error('Token fetch error:', err);
+      return undefined;
+    }
+  };
+
+  const getToken = async (refreshToken?: boolean): Promise<string | undefined> => {
+    if (refreshToken || token.value === undefined) {
+      token.value = await fetchToken();
+    }
+    return token.value;
+  };
+
+  watchEffect(async () => {
+    if (!token.value) {
+      await getToken(true);
+    }
+  });
+
+  return { token, getToken };
 }

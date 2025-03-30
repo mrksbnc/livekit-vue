@@ -1,56 +1,62 @@
 import { useEnsureParticipant } from '@/context/participant.context';
 import {
-  getTrackReferenceId,
   mutedObserver,
   type TrackReference,
   type TrackReferenceOrPlaceholder,
   type TrackReferencePlaceholder,
 } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import type { Participant, Track } from 'livekit-client';
-import { computed, ref, watch, type ShallowRef } from 'vue';
+import { computed, ref, watchEffect, type Ref } from 'vue';
 
-export type UseIsMutedOptions = {
+export type UseIsMutedProps = {
   participant?: Participant;
+  sourceOrTrackRef: TrackReferenceOrPlaceholder | Track.Source;
 };
 
-export function useIsMuted(trackRef: TrackReferenceOrPlaceholder): ShallowRef<boolean>;
-export function useIsMuted(
-  sourceOrTrackRef: TrackReferenceOrPlaceholder | Track.Source,
-  options: UseIsMutedOptions = {},
-): ShallowRef<boolean> {
-  const passedParticipant = computed<Participant | undefined>(() =>
-    typeof sourceOrTrackRef === 'string' ? options.participant : sourceOrTrackRef.participant,
-  );
+export type UseIsMuted = {
+  isMuted: Ref<boolean>;
+};
 
-  const p = useEnsureParticipant(passedParticipant.value);
+export function useIsMuted(props: UseIsMutedProps): UseIsMuted;
+export function useIsMuted(props: UseIsMutedProps): UseIsMuted {
+  const passedParticipant =
+    typeof props.sourceOrTrackRef === 'string'
+      ? props.participant
+      : props.sourceOrTrackRef.participant;
 
-  const trackRef = computed<TrackReference | TrackReferencePlaceholder>(() => {
-    const track =
-      typeof sourceOrTrackRef === 'string'
-        ? { participant: p.value, source: sourceOrTrackRef }
-        : sourceOrTrackRef;
+  const p = useEnsureParticipant(passedParticipant);
 
-    return track;
+  const trackReference = computed<TrackReference | TrackReferencePlaceholder>(() => {
+    return typeof props.sourceOrTrackRef === 'string'
+      ? { participant: p.value, source: props.sourceOrTrackRef }
+      : props.sourceOrTrackRef;
   });
 
-  const isMuted = ref(
+  const isMuted = ref<boolean>(
     !!(
-      trackRef.value.publication?.isMuted ||
-      p.value.getTrackPublication(trackRef.value.source)?.isMuted
+      trackReference.value.publication?.isMuted ||
+      p.value.getTrackPublication(trackReference.value.source)?.isMuted
     ),
   );
 
-  watch(
-    () => getTrackReferenceId(trackRef.value),
-    () => {
-      useSubscription(
-        mutedObserver(trackRef.value).subscribe((muted) => {
-          isMuted.value = muted;
-        }),
-      );
-    },
+  const observable = computed<ReturnType<typeof mutedObserver>>(() =>
+    mutedObserver(trackReference.value),
   );
 
-  return isMuted;
+  watchEffect((onCleanup): void => {
+    const subscription = observable.value.subscribe({
+      next: (muted: boolean): void => {
+        isMuted.value = muted;
+      },
+      error: (err: Error): void => {
+        console.error('Muted state observer error:', err);
+      },
+    });
+
+    onCleanup((): void => {
+      subscription.unsubscribe();
+    });
+  });
+
+  return { isMuted };
 }

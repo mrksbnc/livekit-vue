@@ -1,68 +1,72 @@
 import { useEnsureTrackRef } from '@/context/track_reference.context';
 import type { ParticipantClickEvent, TrackReferenceOrPlaceholder } from '@livekit/components-core';
-import { Track, TrackPublication } from 'livekit-client';
-import { computed, shallowRef, type HTMLAttributes, type ShallowRef } from 'vue';
-import { useFacingMode } from './useFacingMode';
+import { Track } from 'livekit-client';
+import { computed, type ComputedRef } from 'vue';
+import { FacingMode, useFacingMode } from './useFacingMode';
 import { useIsMuted } from './useIsMuted';
 import { useIsSpeaking } from './useIsSpeaking';
+
+export type ParticipantTileAttributes = {
+  'data-lk-audio-muted': boolean;
+  'data-lk-video-muted': boolean;
+  'data-lk-speaking': boolean;
+  'data-lk-local-participant': boolean;
+  'data-lk-source': Track.Source;
+  'data-lk-facing-mode': FacingMode;
+};
 
 export type UseParticipantTileProps = {
   trackRef?: TrackReferenceOrPlaceholder;
   disableSpeakingIndicator?: boolean;
   onParticipantClick?: (event: ParticipantClickEvent) => void;
-  htmlProps: HTMLAttributes;
 };
 
-export function useParticipantTile(options: UseParticipantTileProps): {
-  elementProps: ShallowRef<HTMLAttributes>;
-} {
-  const trackReference = useEnsureTrackRef(options.trackRef);
+export type UseParticipantTile = {
+  attributes: ComputedRef<ParticipantTileAttributes>;
+  onClick: () => void;
+};
 
-  const htmlElementAttributes = computed<HTMLAttributes>(() => {
-    return {
-      class: 'lk-participant-tile',
-      onClick: (event: MouseEvent) => {
-        options.htmlProps.onClick?.(event);
+export function useParticipantTile(props: UseParticipantTileProps): UseParticipantTile {
+  const trackReference = useEnsureTrackRef(props.trackRef);
 
-        if (typeof options.onParticipantClick === 'function') {
-          const track =
-            trackReference.value.publication ??
-            trackReference.value.participant.getTrackPublication(trackReference.value.source);
+  const micRef = computed<TrackReferenceOrPlaceholder>(() => ({
+    participant: trackReference.value.participant,
+    source: Track.Source.Microphone,
+    publication: trackReference.value.participant?.getTrackPublication(Track.Source.Microphone),
+  }));
 
-          options.onParticipantClick({ participant: trackReference.value.participant, track });
-        }
-      },
-    };
+  const { isMuted: isVideoMuted } = useIsMuted({
+    sourceOrTrackRef: trackReference.value,
+    participant: trackReference.value.participant,
   });
-
-  const micTrack = computed<TrackPublication | undefined>(() => {
-    return trackReference.value.participant.getTrackPublication(Track.Source.Microphone);
+  const { isMuted: isAudioMuted } = useIsMuted({
+    sourceOrTrackRef: micRef.value,
+    participant: trackReference.value.participant,
   });
+  const { isSpeaking } = useIsSpeaking({ participant: trackReference.value.participant });
+  const { facingMode } = useFacingMode({ trackReference: trackReference.value });
 
-  const micRef = computed<TrackReferenceOrPlaceholder>(() => {
-    const trackRef: TrackReferenceOrPlaceholder = {
-      participant: trackReference.value.participant,
-      source: Track.Source.Microphone,
-      publication: micTrack.value,
-    };
+  const attributes = computed<ParticipantTileAttributes>(() => ({
+    'data-lk-audio-muted': isAudioMuted.value,
+    'data-lk-video-muted': isVideoMuted.value,
+    'data-lk-speaking': props.disableSpeakingIndicator === true ? false : isSpeaking.value,
+    'data-lk-local-participant': trackReference.value.participant?.isLocal ?? false,
+    'data-lk-source': trackReference.value.source ?? Track.Source.Unknown,
+    'data-lk-facing-mode': facingMode.value,
+  }));
 
-    return trackRef;
-  });
+  function onClick(): void {
+    if (typeof props.onParticipantClick === 'function' && trackReference.value.participant) {
+      const track =
+        trackReference.value.publication ??
+        trackReference.value.participant.getTrackPublication(trackReference.value.source);
 
-  const isVideoMuted = useIsMuted(trackReference.value);
-  const isAudioMuted = useIsMuted(micRef.value);
-  const isSpeaking = useIsSpeaking(trackReference.value.participant);
-  const facingMode = useFacingMode(trackReference.value);
+      props.onParticipantClick({
+        participant: trackReference.value.participant,
+        track,
+      });
+    }
+  }
 
-  return {
-    elementProps: shallowRef({
-      'data-lk-audio-muted': isAudioMuted,
-      'data-lk-video-muted': isVideoMuted,
-      'data-lk-speaking': options.disableSpeakingIndicator === true ? false : isSpeaking,
-      'data-lk-local-participant': trackReference.value.participant.isLocal,
-      'data-lk-source': trackReference.value.source,
-      'data-lk-facing-mode': facingMode,
-      ...htmlElementAttributes.value,
-    }),
-  };
+  return { attributes, onClick };
 }

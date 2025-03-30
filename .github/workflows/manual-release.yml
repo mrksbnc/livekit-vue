@@ -1,0 +1,94 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Type of version change (patch, minor, major)'
+        required: true
+        default: 'patch'
+        type: 'choice'
+        options:
+          - patch
+          - minor
+          - major
+      release_branch:
+        description: 'Branch to release from'
+        required: true
+        default: 'main'
+        type: 'string'
+
+permissions:
+  contents: write
+
+jobs:
+  publish_npm:
+    name: Publish to NPM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code from release branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.release_branch }}
+          fetch-depth: 0
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      - name: Run Tests
+        run: pnpm test
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create Manual Version Bump Changeset
+        run: |
+          VERSION_TYPE="${{ github.event.inputs.version_type }}"
+          echo "Creating a manual $VERSION_TYPE changeset..."
+
+          # Create a temporary unique changeset filename
+          CHANGESET_ID=$(openssl rand -hex 6)
+          CHANGESET_FILE=".changeset/$CHANGESET_ID.md"
+          mkdir -p .changeset
+
+          # Create changeset file content based on version type
+          # Ensure correct quoting for the package name if it contains special characters
+          cat > $CHANGESET_FILE << EOF
+          ---
+          "@mrksbnc/livekit-vue": $VERSION_TYPE
+          ---
+
+          Manual $VERSION_TYPE release triggered from GitHub Actions workflow.
+          EOF
+          echo "Created changeset file: $CHANGESET_FILE"
+
+      - name: Apply Version Bump from Changeset
+        run: pnpm changeset version
+
+      - name: Build Package
+        run: pnpm build:prod
+
+      - name: Publish to NPM
+        run: pnpm changeset publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Push Version Commit and Tags
+        run: |
+          # The 'pnpm changeset version' command should have created a commit and tag.
+          # We just need to push them.
+          # Use --follow-tags to push the tag created by 'changeset version'
+          echo "Pushing commit and tags to origin..."
+          git push origin "${{ github.event.inputs.release_branch }}" --follow-tags

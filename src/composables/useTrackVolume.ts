@@ -10,7 +10,7 @@ import {
   type LocalAudioTrack,
   type RemoteAudioTrack,
 } from 'livekit-client';
-import { onBeforeMount, onWatcherCleanup, ref, watch, type ShallowRef } from 'vue';
+import { computed, ref, watchEffect, type MaybeRef, type Ref } from 'vue';
 
 export type MultiBandTrackVolumeOptions = {
   bands?: number;
@@ -32,6 +32,37 @@ export type AudioWaveformOptions = {
   barCount?: number;
   volMultiplier?: number;
   updateInterval?: number;
+};
+
+export type UseTrackVolume = {
+  volume: Ref<number>;
+};
+
+export type UseMultibandTrackVolume = {
+  frequencyBands: Ref<number[]>;
+};
+
+export type UseAudioWaveform = {
+  bars: Ref<number[]>;
+};
+
+export type UseTrackVolumeProps = {
+  trackOrTrackReference?: MaybeRef<LocalAudioTrack | RemoteAudioTrack | TrackReference | undefined>;
+  options?: AudioAnalyserOptions;
+};
+
+export type UseMultibandTrackVolumeProps = {
+  trackOrTrackReference?: MaybeRef<
+    LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder | undefined
+  >;
+  options?: MultiBandTrackVolumeOptions;
+};
+
+export type UseAudioWaveformProps = {
+  trackOrTrackReference?: MaybeRef<
+    LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder | undefined
+  >;
+  options?: AudioWaveformOptions;
 };
 
 const multibandDefaults = {
@@ -58,7 +89,6 @@ function normalizeFrequencies(frequencies: Float32Array): Float32Array<ArrayBuff
     return db;
   };
 
-  // Normalize all frequency values
   return frequencies.map((value) => {
     if (value === -Infinity) {
       return 0;
@@ -94,175 +124,230 @@ function filterData(audioData: Float32Array, numSamples: number): Float32Array {
   return filteredData;
 }
 
-export function useTrackVolume(
-  trackOrTrackReference?: LocalAudioTrack | RemoteAudioTrack | TrackReference,
-  options: AudioAnalyserOptions = { fftSize: 32, smoothingTimeConstant: 0 },
-): ShallowRef<number> {
-  const track = isTrackReference(trackOrTrackReference)
-    ? <LocalAudioTrack | RemoteAudioTrack | undefined>trackOrTrackReference.publication.track
-    : trackOrTrackReference;
-
+export function useTrackVolume(props: UseTrackVolumeProps): UseTrackVolume {
   const volume = ref<number>(0);
 
-  watch(
-    () => track,
-    (val) => {
-      if (!val || !val.mediaStream) {
-        return;
-      }
+  const track = computed<LocalAudioTrack | RemoteAudioTrack | undefined>(() => {
+    if (!props.trackOrTrackReference) {
+      return undefined;
+    }
 
-      const { cleanup, analyser } = createAudioAnalyser(val, options);
+    const input =
+      'value' in props.trackOrTrackReference
+        ? props.trackOrTrackReference.value
+        : props.trackOrTrackReference;
+
+    if (!input) {
+      return undefined;
+    }
+
+    return isTrackReference(input)
+      ? (input.publication?.track as LocalAudioTrack | RemoteAudioTrack | undefined)
+      : input;
+  });
+
+  watchEffect((onCleanup) => {
+    const currentTrack = track.value;
+    if (!currentTrack || !currentTrack.mediaStream) {
+      return;
+    }
+
+    try {
+      const { cleanup, analyser } = createAudioAnalyser(currentTrack, props.options);
 
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
-      function updateVolume() {
-        analyser.getByteFrequencyData(dataArray);
-        let sum = 0;
-        for (let i = 0; i < dataArray.length; i++) {
-          const a = dataArray[i];
-          sum += a * a;
+      const updateVolume = () => {
+        try {
+          analyser.getByteFrequencyData(dataArray);
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            const a = dataArray[i];
+            sum += a * a;
+          }
+          volume.value = Math.sqrt(sum / dataArray.length) / 255;
+        } catch (error) {
+          console.error('Error updating volume:', error);
         }
-        volume.value = Math.sqrt(sum / dataArray.length) / 255;
-      }
+      };
 
       const interval = setInterval(updateVolume, 1000 / 30);
 
-      onWatcherCleanup(() => {
+      onCleanup(() => {
         cleanup();
         clearInterval(interval);
       });
-    },
-    { deep: true },
-  );
+    } catch (error) {
+      console.error('Error setting up audio analyzer:', error);
+    }
+  });
 
-  return volume;
+  return { volume };
 }
 
 export function useMultibandTrackVolume(
-  trackOrTrackReference?: LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder,
-  options: MultiBandTrackVolumeOptions = {},
-): ShallowRef<number[]> {
-  const track =
-    trackOrTrackReference instanceof Track
-      ? trackOrTrackReference
-      : <LocalAudioTrack | RemoteAudioTrack | undefined>trackOrTrackReference?.publication?.track;
-
-  const opts = { ...multibandDefaults, ...options };
+  props: UseMultibandTrackVolumeProps,
+): UseMultibandTrackVolume {
+  const opts = { ...multibandDefaults, ...props.options };
   const frequencyBands = ref<number[]>(Array.from({ length: opts.bands }, () => 0));
 
-  watch(
-    [track, options],
-    () => {
-      if (!track || !track?.mediaStream) {
-        return;
-      }
-      const { analyser, cleanup } = createAudioAnalyser(track, opts.analyserOptions);
+  const track = computed<LocalAudioTrack | RemoteAudioTrack | undefined>(() => {
+    if (!props.trackOrTrackReference) return undefined;
+
+    const input =
+      'value' in props.trackOrTrackReference
+        ? props.trackOrTrackReference.value
+        : props.trackOrTrackReference;
+    return input instanceof Track
+      ? input
+      : (input?.publication?.track as LocalAudioTrack | RemoteAudioTrack | undefined);
+  });
+
+  watchEffect((onCleanup) => {
+    const currentTrack = track.value;
+    if (!currentTrack || !currentTrack.mediaStream) {
+      return;
+    }
+
+    try {
+      const { analyser, cleanup } = createAudioAnalyser(currentTrack, opts.analyserOptions);
 
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Float32Array(bufferLength);
 
       const updateVolume = () => {
-        analyser.getFloatFrequencyData(dataArray);
+        try {
+          analyser.getFloatFrequencyData(dataArray);
 
-        let frequencies: Float32Array = new Float32Array(dataArray.length);
+          let frequencies: Float32Array = new Float32Array(dataArray.length);
 
-        for (let i = 0; i < dataArray.length; i++) {
-          frequencies[i] = dataArray[i];
+          for (let i = 0; i < dataArray.length; i++) {
+            frequencies[i] = dataArray[i];
+          }
+
+          frequencies = frequencies.slice(opts.loPass, opts.hiPass);
+
+          const chunks: Array<number> = [];
+          const normalizedFrequencies = normalizeFrequencies(frequencies);
+          const chunkSize = Math.ceil(normalizedFrequencies.length / opts.bands);
+
+          for (let i = 0; i < opts.bands; i++) {
+            const summedVolumes = normalizedFrequencies
+              .slice(i * chunkSize, (i + 1) * chunkSize)
+              .reduce((acc, val) => (acc += val), 0);
+
+            chunks.push(summedVolumes / chunkSize);
+          }
+
+          frequencyBands.value = chunks;
+        } catch (error) {
+          console.error('Error updating frequency bands:', error);
         }
-
-        frequencies = frequencies.slice(options.loPass, options.hiPass);
-
-        const chunks: Array<number> = [];
-        const normalizedFrequencies = normalizeFrequencies(frequencies);
-        const chunkSize = Math.ceil(normalizedFrequencies.length / opts.bands);
-
-        for (let i = 0; i < opts.bands; i++) {
-          const summedVolumes = normalizedFrequencies
-            .slice(i * chunkSize, (i + 1) * chunkSize)
-            .reduce((acc, val) => (acc += val), 0);
-
-          chunks.push(summedVolumes / chunkSize);
-        }
-
-        frequencyBands.value = chunks;
       };
 
       const interval = setInterval(updateVolume, opts.updateInterval);
 
-      onWatcherCleanup(() => {
+      onCleanup(() => {
         cleanup();
         clearInterval(interval);
       });
-    },
-    { deep: true },
-  );
+    } catch (error) {
+      console.error('Error setting up multiband audio analyzer:', error);
+    }
+  });
 
-  return frequencyBands;
+  return { frequencyBands };
 }
 
-export function useAudioWaveform(
-  trackOrTrackReference?: LocalAudioTrack | RemoteAudioTrack | TrackReferenceOrPlaceholder,
-  options: AudioWaveformOptions = {},
-): {
-  bars: ShallowRef<number[]>;
-} {
-  const track =
-    trackOrTrackReference instanceof Track
-      ? trackOrTrackReference
-      : <LocalAudioTrack | RemoteAudioTrack | undefined>trackOrTrackReference?.publication?.track;
-  const opts = { ...waveformDefaults, ...options };
+export function useAudioWaveform(props: UseAudioWaveformProps): UseAudioWaveform {
+  const opts = { ...waveformDefaults, ...props.options };
 
-  const aggregateWave = ref<Float32Array<ArrayBuffer>>(new Float32Array());
+  const aggregateWave = ref<Float32Array>(new Float32Array());
   const timeRef = ref<number>(performance.now());
   const updates = ref<number>(0);
   const bars = ref<number[]>([]);
 
+  const track = computed<LocalAudioTrack | RemoteAudioTrack | undefined>(() => {
+    if (!props.trackOrTrackReference) return undefined;
+
+    const input =
+      'value' in props.trackOrTrackReference
+        ? props.trackOrTrackReference.value
+        : props.trackOrTrackReference;
+    return input instanceof Track
+      ? input
+      : (input?.publication?.track as LocalAudioTrack | RemoteAudioTrack | undefined);
+  });
+
   function onUpdate(wave: Float32Array) {
-    bars.value = Array.from(
-      filterData(wave, opts.barCount).map((v) => Math.sqrt(v) * opts.volMultiplier),
-    );
+    try {
+      bars.value = Array.from(
+        filterData(wave, opts.barCount).map((v) => Math.sqrt(v) * opts.volMultiplier),
+      );
+    } catch (error) {
+      console.error('Error updating waveform bars:', error);
+    }
   }
 
-  watch([track, options], () => {
-    if (!track || !track?.mediaStream) {
+  watchEffect((onCleanup) => {
+    const currentTrack = track.value;
+    if (!currentTrack || !currentTrack.mediaStream) {
       return;
     }
 
-    const { analyser, cleanup } = createAudioAnalyser(track, {
-      fftSize: getFFTSizeValue(opts.barCount),
-    });
+    try {
+      const { analyser, cleanup } = createAudioAnalyser(currentTrack, {
+        fftSize: getFFTSizeValue(opts.barCount),
+      });
 
-    const bufferLength = getFFTSizeValue(opts.barCount);
-    const dataArray = new Float32Array(bufferLength);
+      const bufferLength = getFFTSizeValue(opts.barCount);
+      const dataArray = new Float32Array(bufferLength);
+      let animationFrame: number;
 
-    const update = () => {
-      updateWaveform = requestAnimationFrame(update);
-      analyser.getFloatTimeDomainData(dataArray);
-      aggregateWave.value.map((v, i) => v + dataArray[i]);
-      updates.value += 1;
+      const update = () => {
+        try {
+          animationFrame = requestAnimationFrame(update);
+          analyser.getFloatTimeDomainData(dataArray);
 
-      if (performance.now() - timeRef.value >= opts.updateInterval) {
-        const newData = dataArray.map((v) => v / updates.value);
-        onUpdate(newData);
-        timeRef.value = performance.now();
-        updates.value = 0;
-      }
-    };
+          if (!aggregateWave.value || aggregateWave.value.length !== dataArray.length) {
+            aggregateWave.value = new Float32Array(dataArray.length);
+          }
 
-    let updateWaveform = requestAnimationFrame(update);
+          // Aggregate waveform data
+          for (let i = 0; i < dataArray.length; i++) {
+            aggregateWave.value[i] += dataArray[i];
+          }
 
-    onWatcherCleanup(() => {
-      cleanup();
-      cancelAnimationFrame(updateWaveform);
-    });
+          updates.value += 1;
+
+          // Process data at specified intervals
+          if (performance.now() - timeRef.value >= opts.updateInterval) {
+            const newData = new Float32Array(dataArray.length);
+            for (let i = 0; i < dataArray.length; i++) {
+              newData[i] = aggregateWave.value[i] / updates.value;
+              aggregateWave.value[i] = 0; // Reset for next aggregation
+            }
+
+            onUpdate(newData);
+            timeRef.value = performance.now();
+            updates.value = 0;
+          }
+        } catch (error) {
+          console.error('Error in waveform update:', error);
+        }
+      };
+
+      animationFrame = requestAnimationFrame(update);
+
+      onCleanup(() => {
+        cleanup();
+        cancelAnimationFrame(animationFrame);
+      });
+    } catch (error) {
+      console.error('Error setting up audio waveform analyzer:', error);
+    }
   });
 
-  onBeforeMount(() => {
-    onUpdate(aggregateWave.value);
-  });
-
-  return {
-    bars,
-  };
+  return { bars };
 }

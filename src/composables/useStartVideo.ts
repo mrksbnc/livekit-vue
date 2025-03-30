@@ -1,46 +1,52 @@
 import { useEnsureRoomContext } from '@/context/room.context';
 import { setupStartVideo } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
-import { computed, ref, toRefs, type HTMLAttributes, type ShallowRef } from 'vue';
+import { computed, ref, watchEffect, type Ref } from 'vue';
 
 export type UseStartVideoProps = {
   room?: Room;
-  props: HTMLAttributes;
 };
 
-export type UseStartVideoReturnType = {
-  canPlayVideo: ShallowRef<boolean>;
-  elementProps: HTMLAttributes;
+export type UseStartVideo = {
+  canPlayVideo: Ref<boolean>;
+  onClick: () => Promise<void>;
 };
 
-export function useStartVideo({ room, props }: UseStartVideoProps): UseStartVideoReturnType {
+export function useStartVideo({ room }: UseStartVideoProps): UseStartVideo {
   const roomEnsured = useEnsureRoomContext(room);
 
-  const canPlayVideo = ref<boolean>(false);
+  const canPlayVideo = ref<boolean>(roomEnsured.value?.canPlaybackVideo ?? false);
 
   const setupStartVideoResult = computed<ReturnType<typeof setupStartVideo>>(() =>
     setupStartVideo(),
   );
 
-  const { className, roomVideoPlaybackAllowedObservable, handleStartVideoPlayback } = toRefs(
-    setupStartVideoResult.value,
-  );
+  watchEffect((onCleanup) => {
+    if (!roomEnsured.value) {
+      return;
+    }
 
-  useSubscription(
-    roomVideoPlaybackAllowedObservable.value(roomEnsured.value).subscribe((evt) => {
-      canPlayVideo.value = evt.canPlayVideo;
-    }),
-  );
+    const observable = setupStartVideoResult.value.roomVideoPlaybackAllowedObservable(
+      roomEnsured.value,
+    );
 
-  return {
-    canPlayVideo,
-    elementProps: {
-      ...props,
-      class: className.value,
-      onClick: () => {
-        handleStartVideoPlayback.value(roomEnsured.value);
+    const subscription = observable.subscribe({
+      next: (evt) => {
+        canPlayVideo.value = evt.canPlayVideo;
       },
-    },
-  };
+      error: (err) => {
+        console.error('Error in room video playback allowed observer:', err);
+      },
+    });
+
+    onCleanup(() => subscription.unsubscribe());
+  });
+
+  async function onClick(): Promise<void> {
+    if (roomEnsured.value) {
+      await setupStartVideoResult.value.handleStartVideoPlayback(roomEnsured.value);
+    }
+  }
+
+  return { canPlayVideo, onClick };
 }

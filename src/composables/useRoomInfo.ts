@@ -1,10 +1,9 @@
 import { useEnsureRoomContext } from '@/context/room.context';
 import { roomInfoObserver } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import type { Room } from 'livekit-client';
-import { ref, type ShallowRef } from 'vue';
+import { ref, watchEffect, type Ref } from 'vue';
 
-export type UseRoomInfoOptions = {
+export type UseRoomInfoProps = {
   room?: Room;
 };
 
@@ -13,19 +12,36 @@ export type RoomInfo = {
   metadata: string | undefined;
 };
 
-export function useRoomInfo(options: UseRoomInfoOptions = {}): ShallowRef<RoomInfo> {
-  const room = useEnsureRoomContext(options.room);
+export type UseRoomInfo = {
+  info: Ref<RoomInfo>;
+};
+
+export function useRoomInfo(props: UseRoomInfoProps = {}): UseRoomInfo {
+  const room = useEnsureRoomContext(props.room);
 
   const info = ref<RoomInfo>({
-    name: room.value.name,
-    metadata: room.value.metadata,
+    name: room.value?.name ?? '',
+    metadata: room.value?.metadata,
   });
 
-  useSubscription(
-    roomInfoObserver(room.value).subscribe((inf) => {
-      info.value = inf;
-    }),
-  );
+  watchEffect((onCleanup) => {
+    if (!room.value) {
+      return;
+    }
 
-  return info;
+    const observable = roomInfoObserver(room.value);
+
+    const subscription = observable.subscribe({
+      next: (roomInfo) => {
+        info.value = roomInfo;
+      },
+      error: (err) => {
+        console.error('Error in room info observer:', err);
+      },
+    });
+
+    onCleanup(() => subscription.unsubscribe());
+  });
+
+  return { info };
 }

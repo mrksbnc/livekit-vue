@@ -1,30 +1,53 @@
 import { useMaybeParticipantContext } from '@/context/participant.context';
 import { useRoomContext } from '@/context/room.context';
 import { participantTracksObservable, type TrackReference } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import type { Participant, Track } from 'livekit-client';
-import { computed, ref, type ShallowRef } from 'vue';
+import { computed, shallowRef, watchEffect, type ShallowRef } from 'vue';
 
-export function useParticipantTracks(
-  sources: Track.Source[],
-  participantIdentity?: string,
-): ShallowRef<TrackReference[]> {
+export type UseParticipantTracksProps = {
+  sources: Track.Source[];
+  participantIdentity?: string;
+  participant?: Participant;
+};
+
+export type UseParticipantTracks = {
+  trackReferences: ShallowRef<TrackReference[]>;
+};
+
+export function useParticipantTracks(props: UseParticipantTracksProps): UseParticipantTracks {
   const room = useRoomContext();
   const participantContext = useMaybeParticipantContext();
+  const trackReferences = shallowRef<TrackReference[]>([]);
 
-  const trackReferences = ref<TrackReference[]>([]);
+  const participant = computed<Participant | undefined>(() => {
+    if (props.participantIdentity && room?.value) {
+      return room.value.getParticipantByIdentity(props.participantIdentity);
+    }
+    return participantContext?.value;
+  });
 
-  const p = computed<Participant | undefined>(() =>
-    participantIdentity
-      ? room?.value?.getParticipantByIdentity(participantIdentity)
-      : participantContext?.value,
-  );
+  watchEffect((onCleanup) => {
+    if (!participant.value) {
+      trackReferences.value = [];
+      return;
+    }
 
-  useSubscription(
-    participantTracksObservable(p.value ?? ({} as Participant), { sources }).subscribe((v) => {
-      trackReferences.value = v;
-    }),
-  );
+    const observable = participantTracksObservable(participant.value, {
+      sources: props.sources,
+    });
 
-  return trackReferences as ShallowRef<TrackReference[]>;
+    const subscription = observable.subscribe({
+      next: (tracks) => {
+        trackReferences.value = tracks;
+      },
+      error: (err) => {
+        console.error('Error in participant tracks observable:', err);
+        trackReferences.value = [];
+      },
+    });
+
+    onCleanup(() => subscription.unsubscribe());
+  });
+
+  return { trackReferences };
 }

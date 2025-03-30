@@ -1,38 +1,51 @@
 import { useMaybeLayoutContext } from '@/context/layout.context';
 import { useEnsureTrackRef } from '@/context/track_reference.context';
 import { isTrackReferencePinned, type TrackReferenceOrPlaceholder } from '@livekit/components-core';
-import { computed, type HTMLAttributes, type ShallowRef } from 'vue';
+import { computed, type ComputedRef } from 'vue';
 
-export type UseFocusToggleProps = {
+export type FocusToggleAttributes = {
+  'data-lk-toggle-focused'?: boolean;
+};
+
+export type FocusToggleProps = {
   trackRef?: TrackReferenceOrPlaceholder;
-  props: HTMLAttributes;
 };
 
-export type UseFocusToggleReturnType = {
-  elementProps: ShallowRef<HTMLAttributes>;
-  inFocus: ShallowRef<boolean>;
+export type UseFocusToggle = {
+  inFocus: ComputedRef<boolean>;
+  attributes: ComputedRef<FocusToggleAttributes>;
+  onClick: () => void;
 };
 
-export function useFocusToggle({ trackRef, props }: UseFocusToggleProps): UseFocusToggleReturnType {
-  const trackReference = useEnsureTrackRef(trackRef);
+export function useFocusToggle(props: FocusToggleProps): UseFocusToggle {
+  const trackReference = useEnsureTrackRef(props.trackRef);
   const layoutContext = useMaybeLayoutContext();
 
-  const className = 'lk-focus-toggle-button';
-
   const inFocus = computed<boolean>(() => {
-    return isTrackReferencePinned(trackReference.value, layoutContext?.value?.pin.state);
+    const pinState = layoutContext?.value?.pin.state.value;
+    return isTrackReferencePinned(trackReference.value, pinState);
   });
 
-  const elementProps = computed<HTMLAttributes>(() => {
-    return {
-      ...props,
-      class: className,
-      'data-lk-toggle-focused': inFocus.value,
-    };
-  });
+  const attributes = computed<FocusToggleAttributes>(() => ({
+    'data-lk-toggle-focused': inFocus.value,
+  }));
+
+  function onClick(): void {
+    if (inFocus.value) {
+      layoutContext?.value?.pin.dispatch({
+        msg: 'clear_pin',
+      });
+    } else {
+      layoutContext?.value?.pin.dispatch({
+        msg: 'set_pin',
+        trackReference: trackReference.value,
+      });
+    }
+  }
 
   return {
-    elementProps,
     inFocus,
+    attributes,
+    onClick,
   };
 }

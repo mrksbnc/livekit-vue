@@ -8,7 +8,6 @@ import type {
   ScreenShareCaptureOptions,
   VideoCaptureOptions,
 } from 'livekit-client';
-import type { HTMLAttributes } from 'vue';
 
 export type LiveKitRoomProps = {
   /**
@@ -69,7 +68,6 @@ export type LiveKitRoomProps = {
    */
   room?: Room;
   simulateParticipants?: number | undefined;
-  htmlProps?: HTMLAttributes;
   onConnected?: () => void;
   onDisconnected?: (reason?: DisconnectReason) => void;
   onError?: (error: Error) => void;

@@ -3,21 +3,26 @@ import type { LiveKitRoomProps } from '@/types/livekit_room.types';
 import { roomOptionsStringifyReplacer } from '@/utils/room.utils';
 import { DisconnectReason, MediaDeviceFailure, Room, RoomEvent } from 'livekit-client';
 import {
-  computed,
   onBeforeUnmount,
   onMounted,
-  onWatcherCleanup,
   ref,
+  shallowRef,
   toRefs,
-  watch,
-  type HTMLAttributes,
+  watchEffect,
   type Ref,
   type ShallowRef,
 } from 'vue';
 
-export type UseLiveKitRoomReturn = {
+export enum ConnectionState {
+  Disconnected = 'disconnected',
+  Connecting = 'connecting',
+  Connected = 'connected',
+  Failed = 'failed',
+}
+
+export type UseLiveKitRoom = {
   room: ShallowRef<Room | undefined>;
-  elementProps: ShallowRef<HTMLAttributes>;
+  connectionState: Ref<ConnectionState>;
 };
 
 const defaultRoomProps: Partial<LiveKitRoomProps> = {
@@ -26,7 +31,7 @@ const defaultRoomProps: Partial<LiveKitRoomProps> = {
   video: false,
 };
 
-export function useLiveKitRoom(props: LiveKitRoomProps): UseLiveKitRoomReturn {
+export function useLiveKitRoom(props: LiveKitRoomProps): UseLiveKitRoom {
   const {
     token,
     serverUrl,
@@ -43,162 +48,182 @@ export function useLiveKitRoom(props: LiveKitRoomProps): UseLiveKitRoomReturn {
     onMediaDeviceFailure,
     onEncryptionError,
     simulateParticipants,
-    htmlProps,
   } = toRefs({ ...defaultRoomProps, ...props });
 
-  const shouldConnect = ref(connect?.value ?? false);
-  const room = ref<Room | undefined>(passedRoom?.value ?? useRoomContext()?.value);
+  const connectionState = ref<ConnectionState>(ConnectionState.Disconnected);
+  const shouldConnect = ref<boolean>(connect?.value ?? false);
+  const room = shallowRef<Room | undefined>(passedRoom?.value ?? useRoomContext()?.value);
 
-  const elementProps = computed<HTMLAttributes>(() => {
-    return {
-      ...htmlProps?.value,
-      class: 'lk-room-container',
+  const setupEventHandlers = (r: Room): (() => void) => {
+    const onSignalConnected = (): void => {
+      const localP = r.localParticipant;
+      if (!localP) return;
+
+      console.debug('trying to publish local tracks');
+      Promise.all([
+        localP.setMicrophoneEnabled(
+          !!audio?.value,
+          typeof audio?.value !== 'boolean' ? audio?.value : undefined,
+        ),
+        localP.setCameraEnabled(
+          !!video?.value,
+          typeof video?.value !== 'boolean' ? video?.value : undefined,
+        ),
+        localP.setScreenShareEnabled(
+          !!screen?.value,
+          typeof screen?.value !== 'boolean' ? screen?.value : undefined,
+        ),
+      ]).catch((e: unknown) => {
+        console.warn(e);
+        onError?.value?.(e as Error);
+      });
     };
+
+    const handleMediaDeviceError = (e: Error): void => {
+      onMediaDeviceFailure?.value?.(MediaDeviceFailure.getFailure(e));
+    };
+
+    const handleEncryptionError = (e: Error): void => {
+      onEncryptionError?.value?.(e);
+    };
+
+    const handleDisconnected = (reason?: DisconnectReason): void => {
+      connectionState.value = ConnectionState.Disconnected;
+      onDisconnected?.value?.(reason);
+    };
+
+    const handleConnected = (): void => {
+      connectionState.value = ConnectionState.Connected;
+      onConnected?.value?.();
+    };
+
+    r.on(RoomEvent.SignalConnected, onSignalConnected)
+      .on(RoomEvent.MediaDevicesError, handleMediaDeviceError)
+      .on(RoomEvent.EncryptionError, handleEncryptionError)
+      .on(RoomEvent.Disconnected, handleDisconnected)
+      .on(RoomEvent.Connected, handleConnected);
+
+    return (): void => {
+      r.off(RoomEvent.SignalConnected, onSignalConnected)
+        .off(RoomEvent.MediaDevicesError, handleMediaDeviceError)
+        .off(RoomEvent.EncryptionError, handleEncryptionError)
+        .off(RoomEvent.Disconnected, handleDisconnected)
+        .off(RoomEvent.Connected, handleConnected);
+    };
+  };
+
+  watchEffect((onCleanup) => {
+    if (!room.value) {
+      return;
+    }
+
+    const cleanup = setupEventHandlers(room.value);
+    onCleanup(cleanup);
   });
 
-  function onSignalConnected() {
-    const localP = room.value?.localParticipant;
+  watchEffect((onCleanup) => {
+    const currentRoom = room.value;
+    if (!currentRoom) {
+      return;
+    }
 
-    console.debug('trying to publish local tracks');
-    Promise.all([
-      localP?.setMicrophoneEnabled(
-        !!audio?.value,
-        typeof audio?.value !== 'boolean' ? audio?.value : undefined,
-      ),
-      localP?.setCameraEnabled(
-        !!video?.value,
-        typeof video?.value !== 'boolean' ? video?.value : undefined,
-      ),
-      localP?.setScreenShareEnabled(
-        !!screen?.value,
-        typeof screen?.value !== 'boolean' ? screen?.value : undefined,
-      ),
-    ]).catch((e) => {
-      console.warn(e);
-      onError?.value?.(e as Error);
-    });
-  }
+    const effectState = { canceled: false };
 
-  function handleMediaDeviceError(e: Error) {
-    const mediaDeviceFailure = MediaDeviceFailure.getFailure(e);
-    onMediaDeviceFailure?.value?.(mediaDeviceFailure);
-  }
-  function handleEncryptionError(e: Error) {
-    onEncryptionError?.value?.(e);
-  }
-
-  function handleDisconnected(reason?: DisconnectReason) {
-    onDisconnected?.value?.(reason);
-  }
-
-  function handleConnected() {
-    onConnected?.value?.();
-  }
-
-  watch(
-    [passedRoom, options, roomOptionsStringifyReplacer],
-    () => {
-      room.value = passedRoom?.value ?? new Room(options?.value);
-    },
-    {
-      deep: true,
-      immediate: true,
-    },
-  );
-
-  watch(
-    [
-      room,
-      audio,
-      video,
-      screen,
-      onError,
-      onEncryptionError,
-      onMediaDeviceFailure,
-      onConnected,
-      onDisconnected,
-    ],
-    () => {
-      if (!room.value) {
-        return;
-      }
-
-      room.value
-        .on(RoomEvent.SignalConnected, onSignalConnected)
-        .on(RoomEvent.MediaDevicesError, handleMediaDeviceError)
-        .on(RoomEvent.EncryptionError, handleEncryptionError)
-        .on(RoomEvent.Disconnected, handleDisconnected)
-        .on(RoomEvent.Connected, handleConnected);
-
-      onWatcherCleanup(() => {
-        if (!room.value) {
-          return;
-        }
-
-        room.value
-          .off(RoomEvent.SignalConnected, onSignalConnected)
-          .off(RoomEvent.MediaDevicesError, handleMediaDeviceError)
-          .off(RoomEvent.EncryptionError, handleEncryptionError)
-          .off(RoomEvent.Disconnected, handleDisconnected)
-          .off(RoomEvent.Connected, handleConnected);
+    if (simulateParticipants?.value) {
+      currentRoom.simulateParticipants({
+        participants: {
+          count: simulateParticipants.value,
+        },
+        publish: {
+          audio: true,
+          useRealTracks: true,
+        },
       });
-    },
-    {
-      deep: true,
-    },
-  );
+      return;
+    }
 
-  watch(
-    [connect, token, connectOptions, room, onError, serverUrl, simulateParticipants],
-    () => {
-      if (!room.value) return;
+    if (connect?.value) {
+      shouldConnect.value = true;
+      connectionState.value = ConnectionState.Connecting;
+      console.debug('connecting');
 
-      if (simulateParticipants?.value) {
-        room.value.simulateParticipants({
-          participants: {
-            count: simulateParticipants.value,
-          },
-          publish: {
-            audio: true,
-            useRealTracks: true,
-          },
-        });
+      if (!token.value) {
+        console.debug('no token yet');
+        connectionState.value = ConnectionState.Failed;
         return;
       }
 
-      if (connect?.value) {
-        shouldConnect.value = true;
+      if (!serverUrl.value) {
+        console.warn('no livekit url provided');
+        connectionState.value = ConnectionState.Failed;
+        onError?.value?.(new Error('no livekit url provided'));
+        return;
+      }
 
-        console.debug('connecting');
+      const attemptConnection = async () => {
+        try {
+          const url = serverUrl.value;
+          const tokenValue = token.value;
 
-        if (!token.value) {
-          console.debug('no token yet');
-          return;
-        }
+          if (!url || !tokenValue) {
+            return;
+          }
 
-        if (!serverUrl.value) {
-          console.warn('no livekit url provided');
-          onError?.value?.(Error('no livekit url provided'));
-          return;
-        }
+          await currentRoom.connect(url, tokenValue, connectOptions?.value);
 
-        room.value.connect(serverUrl.value, token.value, connectOptions?.value).catch((e) => {
-          console.warn(e);
-          if (shouldConnect.value === true) {
+          // Only update state if this effect instance hasn't been cleaned up
+          if (!effectState.canceled && shouldConnect.value) {
+            connectionState.value = ConnectionState.Connected;
+          }
+        } catch (e) {
+          console.warn('Connection error:', e);
+          // Only update state if this effect instance hasn't been cleaned up
+          if (!effectState.canceled && shouldConnect.value) {
+            connectionState.value = ConnectionState.Failed;
             onError?.value?.(e as Error);
           }
+        }
+      };
+
+      attemptConnection();
+    } else {
+      console.debug('disconnecting because connect is false');
+      shouldConnect.value = false;
+
+      currentRoom
+        .disconnect()
+        .then(() => {
+          if (!effectState.canceled) {
+            connectionState.value = ConnectionState.Disconnected;
+          }
+        })
+        .catch(() => {
+          if (!effectState.canceled) {
+            connectionState.value = ConnectionState.Disconnected;
+          }
         });
-      } else {
-        console.debug('disconnecting because connect is false');
+    }
+
+    onCleanup(() => {
+      effectState.canceled = true;
+      if (currentRoom && shouldConnect.value) {
+        console.debug('disconnecting due to dependency change or unmount');
         shouldConnect.value = false;
-        room.value.disconnect();
+
+        currentRoom.disconnect().catch(() => {
+          connectionState.value = ConnectionState.Disconnected;
+        });
       }
-    },
-    { deep: true },
-  );
+    });
+  });
+
+  watchEffect(() => {
+    JSON.stringify(options?.value, roomOptionsStringifyReplacer);
+    room.value = passedRoom?.value ?? new Room(options?.value);
+  });
 
   onMounted(() => {
-    if (options?.value && passedRoom) {
+    if (options?.value && passedRoom?.value) {
       console.warn(
         'when using a manually created room, the options object will be ignored. set the desired options directly when creating the room instead.',
       );
@@ -207,13 +232,11 @@ export function useLiveKitRoom(props: LiveKitRoomProps): UseLiveKitRoomReturn {
 
   onBeforeUnmount(() => {
     if (room.value) {
-      console.info('disconnecting before unmounting');
-      room.value.disconnect();
+      room.value.disconnect().catch((e) => {
+        console.warn('Error during disconnection:', e);
+      });
     }
   });
 
-  return {
-    room: room as Ref<Room | undefined>,
-    elementProps,
-  };
+  return { room, connectionState };
 }

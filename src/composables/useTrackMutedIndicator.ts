@@ -3,27 +3,49 @@ import {
   setupTrackMutedIndicator,
   type TrackReferenceOrPlaceholder,
 } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
-import { computed, ref, toRefs, type ShallowRef } from 'vue';
+import { computed, ref, watchEffect, type Ref } from 'vue';
 
-export function useTrackMutedIndicator(trackRef?: TrackReferenceOrPlaceholder): {
-  isMuted: ShallowRef<boolean>;
-  className: ShallowRef<string>;
-} {
-  const trackReference = useEnsureTrackRef(trackRef);
-  const isMuted = ref<boolean>(false);
+export type UseTrackMutedIndicator = {
+  isMuted: Ref<boolean>;
+};
 
-  const mediaTrackSetupResult = computed<ReturnType<typeof setupTrackMutedIndicator>>(() =>
+export type UseTrackMutedIndicatorProps = {
+  trackRef: TrackReferenceOrPlaceholder;
+};
+
+export function useTrackMutedIndicator(props: UseTrackMutedIndicatorProps): UseTrackMutedIndicator {
+  const trackReference = useEnsureTrackRef(props.trackRef);
+
+  const isMuted = ref<boolean>(
+    !!(
+      trackReference.value.publication?.isMuted ||
+      trackReference.value.participant.getTrackPublication(trackReference.value.source)?.isMuted
+    ),
+  );
+
+  const mutedIndicator = computed<ReturnType<typeof setupTrackMutedIndicator>>(() =>
     setupTrackMutedIndicator(trackReference.value),
   );
 
-  const { className, mediaMutedObserver } = toRefs(mediaTrackSetupResult.value);
+  watchEffect((onCleanup) => {
+    const observer = mutedIndicator.value.mediaMutedObserver;
+    if (!observer) {
+      return;
+    }
 
-  useSubscription(
-    mediaMutedObserver.value?.subscribe((muted) => {
-      isMuted.value = muted;
-    }),
-  );
+    const subscription = observer.subscribe({
+      next: (muted) => {
+        isMuted.value = muted;
+      },
+      error: (err) => {
+        console.error('Error in media muted observer:', err);
+      },
+    });
 
-  return { isMuted, className };
+    onCleanup(() => subscription.unsubscribe());
+  });
+
+  return {
+    isMuted,
+  };
 }

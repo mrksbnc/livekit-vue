@@ -1,28 +1,40 @@
 import { useEnsureParticipant } from '@/context';
 import { participantPermissionObserver } from '@livekit/components-core';
 import type { ParticipantPermission } from '@livekit/protocol';
-import { useSubscription } from '@vueuse/rxjs';
 import type { Participant } from 'livekit-client';
-import { computed, ref, type ShallowRef } from 'vue';
+import { shallowRef, watchEffect, type ShallowRef } from 'vue';
 
-export type UseParticipantPermissionsOptions = {
+export type UseParticipantPermissionsProps = {
   participant?: Participant;
 };
 
+export type UseParticipantPermissions = {
+  permissions: ShallowRef<ParticipantPermission | undefined>;
+};
+
 export function useParticipantPermissions(
-  options: UseParticipantPermissionsOptions = {},
-): ShallowRef<ParticipantPermission | undefined> {
-  const p = useEnsureParticipant(options.participant);
+  props: UseParticipantPermissionsProps = {},
+): UseParticipantPermissions {
+  const participant = useEnsureParticipant(props.participant);
+  const permissions = shallowRef<ParticipantPermission | undefined>(participant.value?.permissions);
 
-  const permission = ref<ParticipantPermission | undefined>(undefined);
+  watchEffect((onCleanup) => {
+    if (!participant.value) {
+      return;
+    }
 
-  const permissionObserver = computed(() => participantPermissionObserver(p.value));
+    const observer = participantPermissionObserver(participant.value);
+    const subscription = observer.subscribe({
+      next: (newPermissions) => {
+        permissions.value = newPermissions;
+      },
+      error: (err) => {
+        console.error('Error in participant permission observer:', err);
+      },
+    });
 
-  useSubscription(
-    permissionObserver.value.subscribe((permissions) => {
-      permission.value = permissions;
-    }),
-  );
+    onCleanup(() => subscription.unsubscribe());
+  });
 
-  return permission as ShallowRef<ParticipantPermission | undefined>;
+  return { permissions };
 }

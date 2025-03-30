@@ -1,31 +1,38 @@
 import { createInjectionState } from '@vueuse/core';
 import type { Room } from 'livekit-client';
 import { shallowRef, type ShallowRef } from 'vue';
+import { NoContextDataProvidedError } from './error';
 
-export type RoomContext = {
-  room: Room;
-};
+export type RoomContext = ShallowRef<Room>;
 
-const [useProvideRoomContext, useRoomContext] = createInjectionState(
-  (initialValue: Room): ShallowRef<Room> => {
-    const room = shallowRef(initialValue);
-
-    return room;
+const [useProvideRoomContext, useRoomContextRaw] = createInjectionState(
+  (initialValue: Room): RoomContext => {
+    return shallowRef(initialValue);
   },
 );
 
-export function useMaybeRoomContext(): ShallowRef<Room> | undefined {
-  return useRoomContext();
+export { useProvideRoomContext, useRoomContextRaw };
+
+export function useMaybeRoomContext(): RoomContext | undefined {
+  return useRoomContextRaw();
 }
 
-export function useEnsureRoomContext(room?: Room): ShallowRef<Room> {
-  const r = room ? shallowRef(room) : useRoomContext();
+export function useRoomContext(): RoomContext {
+  const context = useMaybeRoomContext();
 
-  if (!r || !r.value) {
-    throw new Error('Please call `useProvideRoomContext` on the appropriate parent component');
+  if (!context) {
+    throw new NoContextDataProvidedError(
+      'Please call `useProvideRoomContext` on the appropriate parent component',
+    );
   }
 
-  return r;
+  return context;
 }
 
-export { useProvideRoomContext, useRoomContext };
+export function useEnsureRoomContext(room?: Room): RoomContext {
+  if (room) {
+    return shallowRef(room);
+  }
+
+  return useRoomContext();
+}

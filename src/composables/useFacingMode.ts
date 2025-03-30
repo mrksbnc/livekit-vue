@@ -1,6 +1,6 @@
 import type { TrackReferenceOrPlaceholder } from '@livekit/components-core';
 import { facingModeFromLocalTrack, LocalTrackPublication } from 'livekit-client';
-import { ref, watch, type ShallowRef } from 'vue';
+import { computed, type ComputedRef } from 'vue';
 
 export enum FacingMode {
   User = 'user',
@@ -10,19 +10,31 @@ export enum FacingMode {
   Undefined = 'undefined',
 }
 
-export function useFacingMode(trackReference: TrackReferenceOrPlaceholder): ShallowRef<FacingMode> {
-  const state = ref<FacingMode>(FacingMode.Undefined);
+export type UseFacingMode = {
+  facingMode: ComputedRef<FacingMode>;
+};
 
-  watch(trackReference, () => {
+export type FacingModeProps = {
+  trackReference: TrackReferenceOrPlaceholder;
+};
+
+export function useFacingMode(props: FacingModeProps): UseFacingMode {
+  const facingMode = computed<FacingMode>(() => {
+    const { trackReference } = props;
+
     if (trackReference.publication instanceof LocalTrackPublication) {
       const localTrack = trackReference.publication.track;
+
       if (localTrack) {
-        const { facingMode } = facingModeFromLocalTrack(localTrack);
-        state.value = FacingMode[facingMode as keyof typeof FacingMode];
+        const { facingMode: trackFacingMode } = facingModeFromLocalTrack(localTrack);
+        return FacingMode[trackFacingMode as keyof typeof FacingMode] || FacingMode.Undefined;
       }
     }
-    return state.value;
+
+    return FacingMode.Undefined;
   });
 
-  return state;
+  return {
+    facingMode,
+  };
 }

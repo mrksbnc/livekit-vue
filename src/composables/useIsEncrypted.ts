@@ -1,32 +1,46 @@
 import { useEnsureParticipant } from '@/context/participant.context';
 import { useEnsureRoomContext } from '@/context/room.context';
 import { encryptionStatusObservable } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import type { LocalParticipant, Participant, Room } from 'livekit-client';
-import { Observable } from 'rxjs';
-import { ref, type ShallowRef } from 'vue';
+import { computed, ref, watchEffect, type Ref } from 'vue';
 
-export type UseIsEncryptedOptions = {
+export type UseIsEncryptedProps = {
   room?: Room;
+  participant?: Participant;
 };
 
-export type EncryptedObservable = Observable<boolean>;
+export type UseIsEncrypted = {
+  isEncrypted: Ref<boolean>;
+};
 
-export function useIsEncrypted(
-  participant?: Participant,
-  options: UseIsEncryptedOptions = {},
-): ShallowRef<boolean> {
-  const p = useEnsureParticipant(participant);
-  const room = useEnsureRoomContext(options.room);
+export function useIsEncrypted(props: UseIsEncryptedProps): UseIsEncrypted {
+  const room = useEnsureRoomContext(props.room);
+  const participant = useEnsureParticipant(props.participant);
+
   const isEncrypted = ref<boolean>(
-    p.value.isLocal ? (p.value as LocalParticipant).isE2EEEnabled : !!p.value?.isEncrypted,
+    participant.value.isLocal
+      ? (participant.value as LocalParticipant).isE2EEEnabled
+      : !!participant.value?.isEncrypted,
   );
 
-  useSubscription(
-    encryptionStatusObservable(room.value, p.value).subscribe((encrypted) => {
-      isEncrypted.value = encrypted;
-    }),
+  const observable = computed<ReturnType<typeof encryptionStatusObservable>>(() =>
+    encryptionStatusObservable(room.value, participant.value),
   );
 
-  return isEncrypted;
+  watchEffect((onCleanup): void => {
+    const subscription = observable.value.subscribe({
+      next: (encrypted: boolean): void => {
+        isEncrypted.value = encrypted;
+      },
+      error: (err: Error): void => {
+        console.error('Encryption status observable error:', err);
+      },
+    });
+
+    onCleanup((): void => {
+      subscription.unsubscribe();
+    });
+  });
+
+  return { isEncrypted };
 }

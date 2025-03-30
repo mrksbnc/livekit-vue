@@ -1,27 +1,45 @@
 import { useEnsureRoomContext } from '@/context/room.context';
 import { connectedParticipantsObserver } from '@livekit/components-core';
-import { useSubscription } from '@vueuse/rxjs';
 import type { Participant, Room, RoomEvent } from 'livekit-client';
-import { ref, watch, type ShallowRef } from 'vue';
+import { shallowRef, watchEffect, type ShallowRef } from 'vue';
 
-export type UseRemoteParticipantsOptions = {
+export type UseRemoteParticipantsProps = {
   updateOnlyOn?: RoomEvent[];
   room?: Room;
 };
 
-export function useRemoteParticipants(
-  options: UseRemoteParticipantsOptions = {},
-): ShallowRef<Participant[]> {
-  const room = useEnsureRoomContext(options.room);
-  const participants = ref<Participant[]>([]);
+export type UseRemoteParticipants = {
+  participants: ShallowRef<Participant[]>;
+};
 
-  watch([room, options.updateOnlyOn], () => {
-    useSubscription(
-      connectedParticipantsObserver(room.value, {
-        additionalRoomEvents: options.updateOnlyOn,
-      }).subscribe((v) => (participants.value = v)),
-    );
+export function useRemoteParticipants(
+  props: UseRemoteParticipantsProps = {},
+): UseRemoteParticipants {
+  const room = useEnsureRoomContext(props.room);
+  const participants = shallowRef<Participant[]>([]);
+
+  watchEffect((onCleanup) => {
+    if (!room.value) {
+      participants.value = [];
+      return;
+    }
+
+    const observable = connectedParticipantsObserver(room.value, {
+      additionalRoomEvents: props.updateOnlyOn,
+    });
+
+    const subscription = observable.subscribe({
+      next: (participantList) => {
+        participants.value = participantList;
+      },
+      error: (err) => {
+        console.error('Error in remote participants observer:', err);
+        participants.value = [];
+      },
+    });
+
+    onCleanup(() => subscription.unsubscribe());
   });
 
-  return participants as ShallowRef<Participant[]>;
+  return { participants };
 }

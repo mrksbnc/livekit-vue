@@ -2,37 +2,38 @@ import {
   GRID_LAYOUTS,
   selectGridLayout,
   type GridLayoutDefinition,
+  type GridLayoutInfo,
 } from '@livekit/components-core';
 import { useElementSize } from '@vueuse/core';
-import { computed, watch, type Ref, type ShallowRef } from 'vue';
+import { computed, watchEffect, type ComputedRef, type Ref } from 'vue';
 
-export type UseGridLayoutReturnType = {
-  layout: ShallowRef<GridLayoutDefinition | undefined>;
-  containerWidth: ShallowRef<number | undefined>;
-  containerHeight: ShallowRef<number | undefined>;
+export type UseGridLayoutProps = {
+  trackCount: number;
+  layouts?: GridLayoutDefinition[];
+  gridElement: Ref<HTMLDivElement>;
 };
 
-export function useGridLayout(
-  gridElement: Ref<HTMLDivElement>,
-  trackCount: number,
-  options: {
-    gridLayouts?: GridLayoutDefinition[];
-  } = {},
-): UseGridLayoutReturnType {
-  const { width, height } = useElementSize(gridElement);
+export type UseGridLayout = {
+  layout: ComputedRef<GridLayoutInfo>;
+  containerWidth: Ref<number>;
+  containerHeight: Ref<number>;
+};
+
+export function useGridLayout(props: UseGridLayoutProps): UseGridLayout {
+  const { width, height } = useElementSize(props.gridElement);
 
   const gridLayouts = computed<GridLayoutDefinition[]>(() => {
-    return options.gridLayouts ?? GRID_LAYOUTS;
+    return props.layouts ?? GRID_LAYOUTS;
   });
 
-  const layout = computed(() => {
-    return selectGridLayout(gridLayouts.value, trackCount, width.value, height.value);
+  const layout = computed<GridLayoutInfo>(() => {
+    return selectGridLayout(gridLayouts.value, props.trackCount, width.value, height.value);
   });
 
-  watch([gridElement, layout], () => {
-    if (gridElement.value && layout) {
-      gridElement.value.style.setProperty('--lk-col-count', layout.value?.columns.toString());
-      gridElement.value.style.setProperty('--lk-row-count', layout.value?.rows.toString());
+  watchEffect(() => {
+    if (props.gridElement.value) {
+      props.gridElement.value.style.setProperty('--lk-col-count', layout.value.columns.toString());
+      props.gridElement.value.style.setProperty('--lk-row-count', layout.value.rows.toString());
     }
   });
 
