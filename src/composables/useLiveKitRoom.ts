@@ -124,6 +124,7 @@ export function useLiveKitRoom(props: LiveKitRoomProps): UseLiveKitRoom {
   watchEffect((onCleanup) => {
     const currentRoom = room.value;
     if (!currentRoom) {
+      console.log('no room');
       return;
     }
 
@@ -145,10 +146,10 @@ export function useLiveKitRoom(props: LiveKitRoomProps): UseLiveKitRoom {
     if (connect?.value) {
       shouldConnect.value = true;
       connectionState.value = ConnectionState.Connecting;
-      console.debug('connecting');
+      console.log('connecting');
 
       if (!token.value) {
-        console.debug('no token yet');
+        console.log('no token yet');
         connectionState.value = ConnectionState.Failed;
         return;
       }

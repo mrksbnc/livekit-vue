@@ -1,5 +1,5 @@
 import type { ParticipantClickEvent, TrackReference } from '@livekit/components-core';
-import type { HTMLAttributes } from 'vue';
+import type { VideoHTMLAttributes } from 'vue';
 
 export type VideoTrackProps = {
   trackRef?: TrackReference;
@@ -7,5 +7,10 @@ export type VideoTrackProps = {
   onTrackClick?: (evt: ParticipantClickEvent) => void;
   onSubscriptionStatusChanged?: (subscribed: boolean) => void;
   manageSubscription?: boolean;
-  attrs?: HTMLAttributes;
+  attrs?: VideoHTMLAttributes;
 };
+
+export enum VideoTrackEvent {
+  TrackClick = 'track-click',
+  SubscriptionStatusChanged = 'subscription-status-changed',
+}

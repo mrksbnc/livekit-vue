@@ -1,6 +1,6 @@
-export class NoContextDataProvidedError extends Error {
+export class MissingContextError extends Error {
   constructor(msg: string) {
     super(msg);
-    this.name = 'NoContextDataProvidedError';
+    this.name = 'MissingContextError';
   }
 }

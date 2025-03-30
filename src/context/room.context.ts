@@ -1,7 +1,7 @@
 import { createInjectionState } from '@vueuse/core';
 import type { Room } from 'livekit-client';
 import { shallowRef, type ShallowRef } from 'vue';
-import { NoContextDataProvidedError } from './error';
+import { MissingContextError } from './error';
 
 export type RoomContext = ShallowRef<Room>;
 
@@ -21,7 +21,7 @@ export function useRoomContext(): RoomContext {
   const context = useMaybeRoomContext();
 
   if (!context) {
-    throw new NoContextDataProvidedError(
+    throw new MissingContextError(
       'Please call `useProvideRoomContext` on the appropriate parent component',
     );
   }

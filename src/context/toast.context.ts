@@ -1,6 +1,6 @@
 import { createInjectionState } from '@vueuse/core';
 import { ref, type Ref } from 'vue';
-import { NoContextDataProvidedError } from './error';
+import { MissingContextError } from './error';
 
 export type ToastMessage = {
   id: string;
@@ -59,7 +59,7 @@ export function useToastContext(): ToastContext {
   const context = useMaybeToastContext();
 
   if (!context) {
-    throw new NoContextDataProvidedError(
+    throw new MissingContextError(
       'Please call `useProvideToastContext` on the appropriate parent component',
     );
   }

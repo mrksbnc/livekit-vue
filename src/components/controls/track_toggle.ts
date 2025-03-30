@@ -4,6 +4,7 @@ import type { TrackPublishOptions } from 'livekit-client';
 export type TrackToggleProps = {
   source: ToggleSource;
   showIcon?: boolean;
+  label?: string;
   initialState?: boolean;
   captureOptions?: CaptureOptionsBySource<ToggleSource>;
   publishOptions?: TrackPublishOptions;

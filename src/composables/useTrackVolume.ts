@@ -79,6 +79,13 @@ const waveformDefaults = {
   updateInterval: 20,
 } as const satisfies AudioWaveformOptions;
 
+export const sequencerIntervals = {
+  connecting: 2000,
+  initializing: 2000,
+  listening: 500,
+  thinking: 150,
+} as const;
+
 function normalizeFrequencies(frequencies: Float32Array): Float32Array<ArrayBuffer> {
   const normalizeDb = (value: number) => {
     const minDb = -100;

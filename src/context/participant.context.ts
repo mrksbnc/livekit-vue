@@ -1,7 +1,7 @@
 import { createInjectionState } from '@vueuse/core';
 import type { Participant } from 'livekit-client';
 import { shallowRef, type ShallowRef } from 'vue';
-import { NoContextDataProvidedError } from './error';
+import { MissingContextError } from './error';
 
 export type ParticipantContext = ShallowRef<Participant>;
 
@@ -21,7 +21,7 @@ export function useParticipantContext(): ParticipantContext {
   const context = useMaybeParticipantContext();
 
   if (!context) {
-    throw new NoContextDataProvidedError(
+    throw new MissingContextError(
       'Please call `useProvideParticipantContext` on the appropriate parent component',
     );
   }

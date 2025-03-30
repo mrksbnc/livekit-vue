@@ -1,7 +1,7 @@
 import type { TrackReference, TrackReferenceOrPlaceholder } from '@livekit/components-core';
 import { createInjectionState } from '@vueuse/core';
 import { shallowRef, type ShallowRef } from 'vue';
-import { NoContextDataProvidedError } from './error';
+import { MissingContextError } from './error';
 
 export type TrackRefContext = ShallowRef<TrackReferenceOrPlaceholder>;
 
@@ -21,7 +21,7 @@ export function useTrackRefContext(): TrackRefContext {
   const context = useMaybeTrackRefContext();
 
   if (!context) {
-    throw new NoContextDataProvidedError(
+    throw new MissingContextError(
       'Please call `useProvideTrackRefContext` on the appropriate parent component',
     );
   }

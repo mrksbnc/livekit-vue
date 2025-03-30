@@ -1,14 +1,44 @@
 <template>
-  <VideoSvg v-if="source === TrackIcon.Camera" :class="trackIconClasses" />
-  <VideoOffSvg v-else-if="source === TrackIcon.CameraDisabled" :class="trackIconClasses" />
-  <MicSvg v-else-if="source === TrackIcon.Microphone" :class="trackIconClasses" />
-  <MicOffSvg v-else-if="source === TrackIcon.MicrophoneDisabled" :class="trackIconClasses" />
-  <ScreenShareSvg v-else-if="source === TrackIcon.ScreenShare" :class="trackIconClasses" />
+  <VideoSvg
+    v-if="source === TrackIcon.Camera"
+    :class="trackIconClasses"
+    width="14"
+    height="14"
+  />
+  <VideoOffSvg
+    v-else-if="source === TrackIcon.CameraDisabled"
+    :class="trackIconClasses"
+    width="14"
+    height="14"
+  />
+  <MicSvg
+    v-else-if="source === TrackIcon.Microphone"
+    :class="trackIconClasses"
+    width="14"
+    height="14"
+  />
+  <MicOffSvg
+    v-else-if="source === TrackIcon.MicrophoneDisabled"
+    :class="trackIconClasses"
+    width="14"
+    height="14"
+  />
+  <ScreenShareSvg
+    v-else-if="source === TrackIcon.ScreenShare"
+    :class="trackIconClasses"
+    width="14"
+    height="14"
+  />
   <ScreenShareDisabledSvg
     v-else-if="source === TrackIcon.ScreenShareDisabled"
     :class="trackIconClasses"
+    width="14"
+    height="14"
   />
-  <span v-else class="track-icon__none" />
+  <span
+    v-else
+    class="track-icon__none"
+  />
 </template>
 
 <script setup lang="ts">

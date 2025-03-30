@@ -10,14 +10,15 @@ import {
   ref,
   shallowRef,
   watchEffect,
-  type HTMLAttributes,
+  type AudioHTMLAttributes,
   type Ref,
   type ShallowRef,
+  type VideoHTMLAttributes,
 } from 'vue';
 
 export type UseMediaTrackOptions = {
-  element?: HTMLMediaElement | null;
-  props?: HTMLAttributes;
+  element?: Ref<HTMLMediaElement | undefined>;
+  props?: VideoHTMLAttributes | AudioHTMLAttributes;
 };
 
 export enum TrackOrientation {
@@ -51,11 +52,13 @@ export function useMediaTrackBySourceOrName(
   const publication = shallowRef<TrackPublication | undefined>(
     getTrackByIdentifier(props.observerOptions),
   );
+
+  const previousElement = ref<HTMLMediaElement>();
+
   const isMuted = ref<boolean>(publication.value?.isMuted ?? false);
   const isSubscribed = ref<boolean>(publication.value?.isSubscribed ?? false);
   const track = shallowRef<Track | undefined>(publication.value?.track);
   const orientation = ref<TrackOrientation>(TrackOrientation.Landscape);
-  const previousElement = ref<HTMLMediaElement | null>(null);
 
   const deps = computed<(string | false | undefined)[]>(() => [
     props.observerOptions.participant.sid ?? props.observerOptions.participant.identity,
@@ -108,13 +111,14 @@ export function useMediaTrackBySourceOrName(
 
       if (
         element &&
+        element.value &&
         !(props.observerOptions.participant.isLocal && currentTrack.kind === 'audio')
       ) {
-        currentTrack.attach(element);
+        currentTrack.attach(element.value);
       }
     }
 
-    previousElement.value = element;
+    previousElement.value = element?.value;
 
     onCleanup(() => {
       if (previousElement.value && currentTrack) {

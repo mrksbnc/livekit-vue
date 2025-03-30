@@ -1,7 +1,7 @@
 import { createInjectionState } from '@vueuse/core';
 import { ConnectionState } from 'livekit-client';
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
-import { NoContextDataProvidedError } from './error';
+import { MissingContextError } from './error';
 
 export type ConnectionStateContextState = {
   connectionState: Ref<ConnectionState>;
@@ -61,7 +61,7 @@ export function useConnectionStateContext(): ConnectionStateContext {
   const context = useMaybeConnectionStateContext();
 
   if (!context) {
-    throw new NoContextDataProvidedError(
+    throw new MissingContextError(
       'Please call `useProvideConnectionStateContext` on the appropriate parent component',
     );
   }
