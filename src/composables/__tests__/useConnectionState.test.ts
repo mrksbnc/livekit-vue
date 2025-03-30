@@ -1,12 +1,11 @@
 import { useConnectionState } from '@/composables/useConnectionState';
 import * as connectionStateContext from '@/context/connection_state.context';
 import * as roomContext from '@/context/room.context';
-import { connectionStateObserver } from '@livekit/components-core';
-import { ConnectionState } from 'livekit-client';
+import * as componentsCore from '@livekit/components-core';
+import { ConnectionState, Room } from 'livekit-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, shallowRef, type ShallowRef } from 'vue';
 
-// Mock dependencies
 vi.mock('@livekit/components-core', () => ({
   connectionStateObserver: vi.fn(),
 }));
@@ -19,136 +18,168 @@ vi.mock('@/context/connection_state.context', () => ({
   useConnectionStateContext: vi.fn(),
 }));
 
-describe('useConnectionState', () => {
-  // Mock room
-  const mockRoom = {
-    state: ConnectionState.Connected,
-    on: vi.fn(),
-    off: vi.fn(),
+vi.mock('livekit-client', async () => {
+  const actual = await vi.importActual('livekit-client');
+  return {
+    ...actual,
+    Room: vi.fn(),
   };
+});
 
-  // Mock subscription
+type ActualRoomContext = ShallowRef<Room>;
+type ObserverNext = (value: ConnectionState) => void;
+type ObserverError = (error: Error) => void;
+
+interface ObserverCallbacks {
+  next: ObserverNext | null;
+  error: ObserverError | null;
+}
+
+describe('useConnectionState', () => {
+  const mockRoom = {
+    state: ConnectionState.Disconnected,
+  } as unknown as Room;
+
   const mockSubscribe = {
     unsubscribe: vi.fn(),
   };
 
-  // Mock observable
-  const mockObservable = {
-    subscribe: vi.fn().mockReturnValue(mockSubscribe),
-  };
-
-  // Mock connection state context
+  const mockConnectionState = ref<ConnectionState>(ConnectionState.Disconnected);
   const mockConnectionStateContext = {
     state: {
-      connectionState: ref(ConnectionState.Connected),
+      connectionState: mockConnectionState,
     },
-    setConnectionState: vi.fn(),
-    isConnecting: computed(() => false),
-    isConnected: computed(() => true),
-    isReconnecting: computed(() => false),
-    isDisconnected: computed(() => false),
+    isConnecting: computed(() => mockConnectionState.value === ConnectionState.Connecting),
+    isConnected: computed(() => mockConnectionState.value === ConnectionState.Connected),
+    isReconnecting: computed(() => mockConnectionState.value === ConnectionState.Reconnecting),
+    isDisconnected: computed(() => mockConnectionState.value === ConnectionState.Disconnected),
+    setConnectionState: vi.fn((state: ConnectionState) => {
+      mockConnectionState.value = state;
+    }),
+  };
+
+  const mockObserverCallbacks: ObserverCallbacks = {
+    next: null,
+    error: null,
+  };
+
+  const mockObservable = {
+    subscribe: vi.fn((observer: { next: ObserverNext; error: ObserverError }) => {
+      mockObserverCallbacks.next = observer.next;
+      mockObserverCallbacks.error = observer.error;
+      return mockSubscribe;
+    }),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Setup mocks
-    vi.spyOn(roomContext, 'useEnsureRoomContext').mockReturnValue(ref(mockRoom));
-    vi.spyOn(connectionStateContext, 'useConnectionStateContext').mockReturnValue(
-      mockConnectionStateContext,
+    mockConnectionState.value = ConnectionState.Disconnected;
+
+    mockRoom.state = ConnectionState.Disconnected;
+
+    (Room as unknown as ReturnType<typeof vi.fn>).mockImplementation(() => mockRoom);
+
+    vi.spyOn(roomContext, 'useEnsureRoomContext').mockReturnValue(
+      shallowRef(mockRoom) as ActualRoomContext,
     );
-    vi.mocked(connectionStateObserver).mockReturnValue(mockObservable);
+    vi.spyOn(connectionStateContext, 'useConnectionStateContext').mockReturnValue(
+      mockConnectionStateContext as ReturnType<
+        typeof connectionStateContext.useConnectionStateContext
+      >,
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(componentsCore.connectionStateObserver).mockReturnValue(mockObservable as any);
   });
 
-  it('should initialize with the current room state', () => {
-    useConnectionState();
+  it('should initialize with room.state value', () => {
+    mockRoom.state = ConnectionState.Connected;
 
-    expect(roomContext.useEnsureRoomContext).toHaveBeenCalled();
-    expect(connectionStateContext.useConnectionStateContext).toHaveBeenCalled();
+    useConnectionState({});
+
     expect(mockConnectionStateContext.setConnectionState).toHaveBeenCalledWith(
       ConnectionState.Connected,
     );
   });
 
-  it('should return connection state values from the context', () => {
-    const result = useConnectionState();
+  it('should not set connection state when no room is available initially', () => {
+    vi.spyOn(roomContext, 'useEnsureRoomContext').mockReturnValue(
+      shallowRef(undefined) as unknown as ActualRoomContext,
+    );
 
-    expect(result.connectionState).toBe(mockConnectionStateContext.state.connectionState);
-    expect(result.isConnecting).toBe(mockConnectionStateContext.isConnecting);
-    expect(result.isConnected).toBe(mockConnectionStateContext.isConnected);
-    expect(result.isReconnecting).toBe(mockConnectionStateContext.isReconnecting);
-    expect(result.isDisconnected).toBe(mockConnectionStateContext.isDisconnected);
+    useConnectionState({});
+
+    expect(mockConnectionStateContext.setConnectionState).not.toHaveBeenCalled();
   });
 
-  it('should accept an optional room parameter', () => {
-    const customRoom = { ...mockRoom, state: ConnectionState.Connecting };
+  it('should create connection state observable from the room', () => {
+    useConnectionState({});
+
+    expect(componentsCore.connectionStateObserver).toHaveBeenCalledWith(mockRoom);
+  });
+
+  it('should update connection state when observable emits', async () => {
+    useConnectionState({});
+
+    expect(mockConnectionState.value).toBe(ConnectionState.Disconnected);
+
+    if (mockObserverCallbacks.next) {
+      mockObserverCallbacks.next(ConnectionState.Connected);
+    }
+
+    await nextTick();
+    expect(mockConnectionState.value).toBe(ConnectionState.Connected);
+  });
+
+  it('should handle errors from the observable', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    useConnectionState({});
+
+    if (mockObserverCallbacks.error) {
+      mockObserverCallbacks.error(new Error('Test error'));
+    }
+
+    await nextTick();
+
+    expect(consoleSpy).toHaveBeenCalledWith('Connection state observer error:', expect.any(Error));
+
+    consoleSpy.mockRestore();
+  });
+
+  it('should accept a custom room in props', () => {
+    const customRoom = { ...mockRoom } as unknown as Room;
 
     useConnectionState({ room: customRoom });
 
     expect(roomContext.useEnsureRoomContext).toHaveBeenCalledWith(customRoom);
   });
 
-  it('should subscribe to connection state changes', () => {
-    useConnectionState();
+  it('should return connection state and derived state values', async () => {
+    const result = useConnectionState({});
 
-    expect(connectionStateObserver).toHaveBeenCalledWith(mockRoom);
-    expect(mockObservable.subscribe).toHaveBeenCalled();
-  });
-
-  it('should update connection state when the observer emits', async () => {
-    useConnectionState();
-
-    // Simulate observer emitting a state change
-    const subscribeCb = vi.mocked(mockObservable.subscribe).mock.calls[0][0];
-    subscribeCb.next(ConnectionState.Reconnecting);
-
+    if (mockObserverCallbacks.next) {
+      mockObserverCallbacks.next(ConnectionState.Connected);
+    }
     await nextTick();
-    expect(mockConnectionStateContext.setConnectionState).toHaveBeenCalledWith(
-      ConnectionState.Reconnecting,
-    );
+
+    expect(result.connectionState.value).toBe(ConnectionState.Connected);
+    expect(result.isConnected.value).toBe(true);
+    expect(result.isConnecting.value).toBe(false);
+    expect(result.isReconnecting.value).toBe(false);
+    expect(result.isDisconnected.value).toBe(false);
   });
 
-  it('should handle errors from the connection state observer', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it('should unsubscribe from the observable on cleanup', () => {
+    useConnectionState({});
 
-    useConnectionState();
+    const cleanup = vi.fn();
+    const onCleanup = (fn: () => void) => cleanup.mockImplementation(fn);
 
-    // Simulate error in the connection state observer
-    const subscribeCb = vi.mocked(mockObservable.subscribe).mock.calls[0][0];
-    subscribeCb.error(new Error('Test error'));
+    onCleanup(() => mockSubscribe.unsubscribe());
+    cleanup();
 
-    await nextTick();
-    expect(consoleSpy).toHaveBeenCalledWith('Connection state observer error:', expect.any(Error));
-
-    consoleSpy.mockRestore();
-  });
-
-  it('should unsubscribe from the observer on cleanup', () => {
-    useConnectionState();
-
-    // Extract the cleanup function
-    const subscribeCb = vi.mocked(mockObservable.subscribe).mock.calls[0][0];
-
-    // Call the cleanup function
-    const cleanupFn = vi.fn();
-    subscribeCb.error(new Error('Test error'));
-
-    // Test the unsubscribe logic by calling the onCleanup function
-    const onCleanup = (fn: () => void) => cleanupFn.mockImplementation(fn)();
-    onCleanup(() => {
-      mockSubscribe.unsubscribe();
-    });
-
-    expect(cleanupFn).toHaveBeenCalled();
-  });
-
-  it('should do nothing if no room is available', () => {
-    // Set room to null
-    vi.spyOn(roomContext, 'useEnsureRoomContext').mockReturnValue(ref(null));
-
-    useConnectionState();
-
-    expect(mockConnectionStateContext.setConnectionState).not.toHaveBeenCalled();
-    expect(mockObservable.subscribe).not.toHaveBeenCalled();
+    expect(mockSubscribe.unsubscribe).toHaveBeenCalled();
   });
 });

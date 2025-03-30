@@ -31,10 +31,7 @@ export type UsePagination = {
 
 export function usePagination(
   itemPerPage: number,
-  trackReferences:
-    | TrackReferenceOrPlaceholder[]
-    | MaybeRef<TrackReferenceOrPlaceholder[]>
-    | (() => TrackReferenceOrPlaceholder[]),
+  trackReferences: TrackReferenceOrPlaceholder[] | MaybeRef<TrackReferenceOrPlaceholder[]>,
   options: UsePaginationOptions = {},
 ): UsePagination {
   // Ensure itemPerPage is at least 1
@@ -43,9 +40,7 @@ export function usePagination(
   const currentPage = ref<number>(options.initialPage ? Math.max(1, options.initialPage) : 1);
 
   const getTrackReferences = computed<TrackReferenceOrPlaceholder[]>(() => {
-    if (typeof trackReferences === 'function') {
-      return trackReferences();
-    } else if ('value' in trackReferences) {
+    if ('value' in trackReferences) {
       return trackReferences.value;
     } else {
       return trackReferences;

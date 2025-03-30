@@ -5,34 +5,22 @@ import {
   useProvideParticipantContext,
 } from '@/context/participant.context';
 import { mount } from '@vue/test-utils';
+import { Participant } from 'livekit-client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, type SetupContext } from 'vue';
 
-// Mock Participant
-const mockParticipant = {
-  identity: 'test-identity',
-  name: 'Test User',
-  metadata: '',
-  isSpeaking: false,
-  audioLevel: 0,
-  connectionQuality: 0,
-  permissions: {},
-  isLocal: false,
-  on: vi.fn(),
-  off: vi.fn(),
-  getTrack: vi.fn(),
-  getTracks: vi.fn(() => []),
-  getTrackPublication: vi.fn(),
-};
+const mockParticipant = vi.mocked(
+  new Participant('test-identity', 'Test User', 'test-name', 'metadata', {}),
+);
 
 describe('Participant Context', () => {
-  // Create test components
   const ParticipantProvider = defineComponent({
     name: 'ParticipantProvider',
     props: ['participant'],
-    setup(props) {
+
+    setup(props, { slots }: SetupContext) {
       useProvideParticipantContext(props.participant);
-      return () => h('div', { id: 'provider' }, [h('slot')]);
+      return () => (slots.default ? slots.default() : null);
     },
   });
 
@@ -52,6 +40,7 @@ describe('Participant Context', () => {
         h(
           'div',
           { id: 'maybe-consumer', 'data-has-context': !!participant },
+
           participant ? participant.value.identity : 'no-context',
         );
     },
@@ -59,9 +48,11 @@ describe('Participant Context', () => {
 
   const EnsureParticipantConsumer = defineComponent({
     name: 'EnsureParticipantConsumer',
+
     props: ['localParticipant'],
     setup(props) {
       const participant = useEnsureParticipant(props.localParticipant);
+
       return () => h('div', { id: 'ensure-consumer', 'data-identity': participant.value.identity });
     },
   });
@@ -73,12 +64,16 @@ describe('Participant Context', () => {
   it('should provide and consume participant context', () => {
     const wrapper = mount(ParticipantProvider, {
       props: { participant: mockParticipant },
-      slots: { default: h(ParticipantConsumer) },
+
+      slots: { default: '<ParticipantConsumer />' },
+      global: {
+        components: { ParticipantConsumer },
+      },
     });
 
     const consumer = wrapper.find('#consumer');
     expect(consumer.exists()).toBe(true);
-    expect(consumer.attributes('data-identity')).toBe('test-identity');
+    expect(consumer.attributes('data-identity')).toBe('Test User');
   });
 
   it('should return undefined when using useMaybeParticipantContext outside provider', () => {
@@ -93,19 +88,25 @@ describe('Participant Context', () => {
   it('should return participant when using useMaybeParticipantContext inside provider', () => {
     const wrapper = mount(ParticipantProvider, {
       props: { participant: mockParticipant },
-      slots: { default: h(MaybeParticipantConsumer) },
+
+      slots: { default: '<MaybeParticipantConsumer />' },
+      global: {
+        components: { MaybeParticipantConsumer },
+      },
     });
 
     const consumer = wrapper.find('#maybe-consumer');
     expect(consumer.exists()).toBe(true);
     expect(consumer.attributes('data-has-context')).toBe('true');
-    expect(consumer.text()).toBe('test-identity');
+    expect(consumer.text()).toBe('Test User');
   });
 
   it('should throw error when using useParticipantContext outside provider', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    expect(() => mount(ParticipantConsumer)).toThrow();
+    expect(() => mount(ParticipantConsumer)).toThrow(
+      'Please call `useProvideParticipantContext` on the appropriate parent component',
+    );
 
     errorSpy.mockRestore();
   });
@@ -122,24 +123,27 @@ describe('Participant Context', () => {
     expect(consumer.attributes('data-identity')).toBe('local-identity');
   });
 
-  it('should use provider participant with useEnsureParticipant when no local participant', () => {
+  it('should use provider participant with useEnsureParticipant when no local participant prop', () => {
     const wrapper = mount(ParticipantProvider, {
       props: { participant: mockParticipant },
-      slots: { default: h(EnsureParticipantConsumer) },
+
+      slots: { default: '<EnsureParticipantConsumer />' },
+      global: {
+        components: { EnsureParticipantConsumer },
+      },
     });
 
     const consumer = wrapper.find('#ensure-consumer');
     expect(consumer.exists()).toBe(true);
-    expect(consumer.attributes('data-identity')).toBe('test-identity');
+    expect(consumer.attributes('data-identity')).toBe('Test User');
   });
 
-  it('should use default participant with useEnsureParticipant when no context or local participant', () => {
-    // Mount the consumer without a provider or local participant
-    const wrapper = mount(EnsureParticipantConsumer);
+  it('should throw error with useEnsureParticipant when no context or local participant prop', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    const consumer = wrapper.find('#ensure-consumer');
-    expect(consumer.exists()).toBe(true);
-    // The default participant should have an empty identity
-    expect(consumer.attributes('data-identity')).toBe('');
+    expect(() => mount(EnsureParticipantConsumer)).toThrow(
+      'Please call `useProvideParticipantContext` on the appropriate parent component',
+    );
+    errorSpy.mockRestore();
   });
 });

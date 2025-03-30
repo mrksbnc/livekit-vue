@@ -12,14 +12,6 @@ on:
           - patch
           - minor
           - major
-          - premajor
-          - preminor
-          - prepatch
-          - prerelease
-      prerelease_tag:
-        description: 'Prerelease tag (for pre* version types)'
-        required: false
-        type: 'string'
       release_branch:
         description: 'Branch to release from'
         required: true
@@ -27,8 +19,8 @@ on:
         type: 'string'
 
 jobs:
-  manual_release:
-    name: Manual Release
+  publish_npm:
+    name: Publish to NPM
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -50,6 +42,9 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
 
+      - name: Run Tests
+        run: pnpm test
+
       - name: Setup Git User
         run: |
           git config --global user.name "github-actions[bot]"
@@ -58,17 +53,10 @@ jobs:
       - name: Create Version Bump Changeset
         run: |
           VERSION_TYPE="${{ github.event.inputs.version_type }}"
-          PRERELEASE_TAG="${{ github.event.inputs.prerelease_tag }}"
 
           # Create a temporary changeset file
           CHANGESET_ID=$(openssl rand -hex 6)
           mkdir -p .changeset
-
-          if [[ "$VERSION_TYPE" == pre* && -n "$PRERELEASE_TAG" ]]; then
-            echo "Creating prerelease changeset with tag: $PRERELEASE_TAG"
-            echo '{"$schema":"https://unpkg.com/@changesets/config@3.0.0/schema.json","changelog":"@changesets/cli/changelog","commit":false,"access":"restricted","baseBranch":"main","updateInternalDependencies":"patch","ignore":[],"___experimentalUnsafeOptions_WILL_CHANGE_IN_PATCH":{"onlyUpdatePeerDependentsWhenOutOfRange":true},"snapshot":{"useCalculatedVersion":true},"fixed":[]}' > .changeset/config.json
-            pnpm changeset pre enter $PRERELEASE_TAG
-          fi
 
           # Create changeset file based on version type
           cat > .changeset/$CHANGESET_ID.md << EOF

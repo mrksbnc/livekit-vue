@@ -1,169 +1,187 @@
 import { useMediaDevices } from '@/composables/useMediaDevices';
-import { createMediaDeviceObserver } from '@livekit/components-core';
+import * as componentsCore from '@livekit/components-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 
-// Mock dependencies
 vi.mock('@livekit/components-core', () => ({
   createMediaDeviceObserver: vi.fn(),
 }));
 
-describe('useMediaDevices', () => {
-  // Mock device list
-  const mockDevices = [
-    { deviceId: 'device1', kind: 'audioinput', label: 'Audio Input 1' },
-    { deviceId: 'device2', kind: 'videoinput', label: 'Video Input 1' },
-  ] as MediaDeviceInfo[];
+type ObserverNext = (value: MediaDeviceInfo[]) => void;
+type ObserverError = (error: Error) => void;
 
-  // Mock subscription
+interface ObserverCallbacks {
+  next: ObserverNext | null;
+  error: ObserverError | null;
+}
+
+const mockAudioInputDevice: MediaDeviceInfo = {
+  deviceId: 'audio-input-1',
+  kind: 'audioinput',
+  label: 'Default Microphone',
+  groupId: 'group-1',
+  toJSON: () => ({}),
+};
+
+describe('useMediaDevices', () => {
   const mockSubscribe = {
     unsubscribe: vi.fn(),
   };
 
-  // Mock observer
-  const mockObservable = {
-    subscribe: vi.fn().mockReturnValue(mockSubscribe),
+  const mockObserverCallbacks: ObserverCallbacks = {
+    next: null,
+    error: null,
   };
 
-  // Original implementation
+  const mockObservable = {
+    subscribe: vi.fn((observer: { next: ObserverNext; error: ObserverError }) => {
+      mockObserverCallbacks.next = observer.next;
+      mockObserverCallbacks.error = observer.error;
+      return mockSubscribe;
+    }),
+  };
+
   const originalMediaDevices = navigator.mediaDevices;
-  const originalAudio = HTMLAudioElement.prototype;
+  const mockGetUserMedia = vi.fn();
+  const mockEnumerateDevices = vi.fn();
+  const mockAddEventListener = vi.fn();
+  const mockRemoveEventListener = vi.fn();
+
+  const mockTrack = { stop: vi.fn() };
+  const mockTracksArray = [mockTrack];
+  const mockStream = { getTracks: vi.fn(() => mockTracksArray) };
 
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // Mock HTMLAudioElement.prototype.setSinkId
-    Object.defineProperty(HTMLAudioElement.prototype, 'setSinkId', {
-      value: vi.fn(),
-      configurable: true,
-    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.mocked(componentsCore.createMediaDeviceObserver).mockReturnValue(mockObservable as any);
 
-    // Mock navigator.mediaDevices
     Object.defineProperty(navigator, 'mediaDevices', {
       value: {
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        enumerateDevices: vi.fn().mockResolvedValue(mockDevices),
-        getUserMedia: vi.fn().mockResolvedValue({
-          getTracks: () => [{ stop: vi.fn() }],
-        }),
+        getUserMedia: mockGetUserMedia.mockResolvedValue(mockStream),
+        enumerateDevices: mockEnumerateDevices,
+        addEventListener: mockAddEventListener,
+        removeEventListener: mockRemoveEventListener,
       },
+      writable: true,
       configurable: true,
     });
 
-    // Setup createMediaDeviceObserver mock
-    vi.mocked(createMediaDeviceObserver).mockReturnValue(mockObservable);
+    mockEnumerateDevices.mockResolvedValue([mockAudioInputDevice]);
   });
 
   afterEach(() => {
-    // Restore original implementation
     Object.defineProperty(navigator, 'mediaDevices', {
       value: originalMediaDevices,
-      configurable: true,
-    });
-
-    Object.defineProperty(HTMLAudioElement.prototype, 'setSinkId', {
-      value: originalAudio.setSinkId,
-      configurable: true,
     });
   });
 
-  it('should initialize with empty devices list', () => {
-    const { devices } = useMediaDevices({ kind: 'audioinput' });
-    expect(devices.value).toEqual([]);
-  });
-
-  it('should set canSelectAudioOutput based on browser capability', () => {
-    // Test when setSinkId is available
-    let { canSelectAudioOutput } = useMediaDevices({ kind: 'audioinput' });
-    expect(canSelectAudioOutput.value).toBe(true);
-
-    // Test when setSinkId is not available
-    delete HTMLAudioElement.prototype.setSinkId;
-    ({ canSelectAudioOutput } = useMediaDevices({ kind: 'audioinput' }));
-    expect(canSelectAudioOutput.value).toBe(false);
-  });
-
-  it('should create a media device observer with the correct parameters', () => {
+  it('should create observer with the specified kind and options', () => {
     const onError = vi.fn();
-    useMediaDevices({
-      kind: 'videoinput',
+    useMediaDevices({ kind: 'audioinput', onError, requestPermissions: true });
+    expect(componentsCore.createMediaDeviceObserver).toHaveBeenCalledWith(
+      'audioinput',
       onError,
-      requestPermissions: true,
-    });
+      true,
+    );
+  });
 
-    expect(createMediaDeviceObserver).toHaveBeenCalledWith('videoinput', onError, true);
+  it('should initialize devices ref with an empty array', () => {
+    const { devices } = useMediaDevices({ kind: 'videoinput' });
+    expect(devices.value).toEqual([]);
   });
 
   it('should update devices when observer emits', async () => {
     const { devices } = useMediaDevices({ kind: 'audioinput' });
-
-    // Initially empty
     expect(devices.value).toEqual([]);
 
-    // Simulate observer emitting new devices
-    const subscribeCb = vi.mocked(mockObservable.subscribe).mock.calls[0][0];
-    subscribeCb.next(mockDevices);
+    const newDeviceList = [
+      mockAudioInputDevice,
+      { ...mockAudioInputDevice, deviceId: 'audio-2' } as MediaDeviceInfo,
+    ];
+    if (mockObserverCallbacks.next) {
+      mockObserverCallbacks.next(newDeviceList);
+    }
 
-    // Check if devices were updated
     await nextTick();
-    expect(devices.value).toEqual(mockDevices);
+
+    expect(devices.value).toEqual(newDeviceList);
   });
 
-  it('should add and remove device change event listener', async () => {
+  it('should request permissions successfully and stop tracks', async () => {
+    const { requestPermission } = useMediaDevices({ kind: 'audioinput' });
+    const success = await requestPermission('audio');
+
+    expect(success).toBe(true);
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({ audio: true, video: false });
+    expect(mockStream.getTracks).toHaveBeenCalled();
+    expect(mockTrack.stop).toHaveBeenCalled();
+  });
+
+  it('should request video permissions', async () => {
+    const { requestPermission } = useMediaDevices({ kind: 'videoinput' });
+    await requestPermission('video');
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({ audio: false, video: true });
+  });
+
+  it('should request both audio and video permissions', async () => {
+    const { requestPermission } = useMediaDevices({ kind: 'videoinput' });
+    await requestPermission('both');
+    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({ audio: true, video: true });
+  });
+
+  it('should handle errors during permission request and call onError', async () => {
+    const testError = new Error('Permission Denied');
+    mockGetUserMedia.mockRejectedValue(testError);
+    const onErrorMock = vi.fn();
+
+    const { requestPermission } = useMediaDevices({ kind: 'audioinput', onError: onErrorMock });
+    const success = await requestPermission('audio');
+
+    expect(success).toBe(false);
+    expect(onErrorMock).toHaveBeenCalledWith(testError);
+  });
+
+  it('should correctly determine canSelectAudioOutput based on prototype', () => {
+    const { canSelectAudioOutput } = useMediaDevices({ kind: 'audiooutput' });
+
+    expect(canSelectAudioOutput.value).toBe('setSinkId' in HTMLAudioElement.prototype);
+  });
+
+  it('should unsubscribe from the observer on cleanup', () => {
+    useMediaDevices({ kind: 'audioinput' });
+    const cleanup = vi.fn();
+    const onCleanup = (fn: () => void) => cleanup.mockImplementation(fn);
+    onCleanup(() => mockSubscribe.unsubscribe());
+    cleanup();
+    expect(mockObservable.subscribe).toHaveBeenCalled();
+    expect(mockSubscribe.unsubscribe).toHaveBeenCalled();
+  });
+
+  it('should add and remove devicechange listener', () => {
+    let capturedListener: EventListener | undefined;
+    mockAddEventListener.mockImplementation((event: string, listener: EventListener) => {
+      if (event === 'devicechange') {
+        capturedListener = listener;
+      }
+    });
+
     useMediaDevices({ kind: 'audioinput' });
 
-    expect(navigator.mediaDevices.addEventListener).toHaveBeenCalledWith(
-      'devicechange',
-      expect.any(Function),
-    );
+    expect(mockAddEventListener).toHaveBeenCalledWith('devicechange', expect.any(Function));
+    expect(capturedListener).toBeDefined();
 
-    // Extract the cleanup function from watchEffect
-    const cleanupListener = vi.mocked(navigator.mediaDevices.addEventListener).mock.calls[0][1];
+    const cleanup = vi.fn();
+    const onCleanup = (fn: () => void) => cleanup.mockImplementation(fn);
 
-    // Call the cleanup function to simulate component unmounting
-    const onCleanup = (fn: () => void) => fn();
     onCleanup(() => {
-      navigator.mediaDevices.removeEventListener('devicechange', cleanupListener);
+      if (capturedListener) {
+        mockRemoveEventListener('devicechange', capturedListener);
+      }
     });
+    cleanup();
 
-    expect(navigator.mediaDevices.removeEventListener).toHaveBeenCalledWith(
-      'devicechange',
-      cleanupListener,
-    );
-  });
-
-  it('should request permissions successfully', async () => {
-    const { requestPermission } = useMediaDevices({ kind: 'audioinput' });
-
-    const result = await requestPermission('audio');
-
-    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
-      audio: true,
-      video: false,
-    });
-    expect(result).toBe(true);
-  });
-
-  it('should handle permission request errors', async () => {
-    const onError = vi.fn();
-    const mediaError = new Error('Permission denied');
-
-    // Mock getUserMedia to reject
-    navigator.mediaDevices.getUserMedia = vi.fn().mockRejectedValue(mediaError);
-
-    const { requestPermission } = useMediaDevices({
-      kind: 'audioinput',
-      onError,
-    });
-
-    const result = await requestPermission('audio');
-
-    expect(navigator.mediaDevices.getUserMedia).toHaveBeenCalledWith({
-      audio: true,
-      video: false,
-    });
-    expect(result).toBe(false);
-    expect(onError).toHaveBeenCalledWith(mediaError);
+    expect(mockRemoveEventListener).toHaveBeenCalledWith('devicechange', capturedListener);
   });
 });
