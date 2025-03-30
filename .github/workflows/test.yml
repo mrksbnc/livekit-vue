@@ -66,3 +66,6 @@ jobs:
 
       - name: Run Unit Tests (Node ${{ matrix.node-version }})
         run: pnpm test:unit
+
+      - name: Add coverage report comment
+        uses: davelosert/vitest-coverage-report-action@v2

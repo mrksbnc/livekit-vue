@@ -1,0 +1,19 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["main"]
+    paths:
+      - '**/*.js'
+      - '**/*.ts'
+      - '**/*.vue'
+  workflow_dispatch:
+
+jobs:
+  javascript:
+    name: JavaScript
+    uses: worldr/common-pipeline/.github/workflows/codeql.yaml@main
+    with:
+      language: javascript
