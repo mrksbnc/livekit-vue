@@ -4,7 +4,6 @@ import * as roomContext from '@/context/room.context';
 import * as componentsCore from '@livekit/components-core';
 import { Room } from 'livekit-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { Ref } from 'vue';
 import { nextTick, ref } from 'vue';
 
 vi.mock('@livekit/components-core', () => ({
@@ -22,8 +21,6 @@ vi.mock('livekit-client', async () => {
     Room: vi.fn(),
   };
 });
-
-type RoomContext = Ref<Room>;
 
 describe('useAudioPlayback', () => {
   const mockRoom = {
