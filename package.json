@@ -46,7 +46,7 @@
   },
   "dependencies": {
     "@livekit/components-core": "^0.12.7",
-    "@livekit/protocol": "^1.38.0",
+    "@livekit/protocol": "^1.39.2",
     "@vueuse/core": "^13.4.0",
     "livekit-client": "^2.13.8",
     "vue": "^3.5.16"
