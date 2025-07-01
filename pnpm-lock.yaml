@@ -12,8 +12,8 @@ importers:
         specifier: ^0.12.8
         version: 0.12.8(livekit-client@2.13.8(@types/dom-mediacapture-record@1.0.22))(tslib@2.8.1)
       '@livekit/protocol':
-        specifier: ^1.39.2
-        version: 1.39.2
+        specifier: ^1.39.3
+        version: 1.39.3
       '@vueuse/core':
         specifier: ^13.4.0
         version: 13.4.0(vue@3.5.16(typescript@5.8.3))
@@ -651,6 +651,9 @@ packages:
 
   '@livekit/protocol@1.39.2':
     resolution: {integrity: sha512-kYbIO/JlC6cylSxd4WJrBps9+zoZ9gifL7t3iW9whT8rbo5jHx03I4dwBLhzOonVyX+memSEO90m/ymNoT+aAw==}
+
+  '@livekit/protocol@1.39.3':
+    resolution: {integrity: sha512-hfOnbwPCeZBEvMRdRhU2sr46mjGXavQcrb3BFRfG+Gm0Z7WUSeFdy5WLstXJzEepz17Iwp/lkGwJ4ZgOOYfPuA==}
 
   '@manypkg/find-root@1.1.0':
     resolution: {integrity: sha512-mki5uBvhHzO8kYYix/WRy2WX8S3B5wdVSc9D6KcU5lQNglP2yt58/VfLuAK49glRXChosY8ap2oJ1qgma3GUVA==}
@@ -3678,6 +3681,10 @@ snapshots:
   '@livekit/mutex@1.1.1': {}
 
   '@livekit/protocol@1.39.2':
+    dependencies:
+      '@bufbuild/protobuf': 1.10.1
+
+  '@livekit/protocol@1.39.3':
     dependencies:
       '@bufbuild/protobuf': 1.10.1
 
