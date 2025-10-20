@@ -21,7 +21,7 @@ jobs:
         uses: pnpm/action-setup@v4
 
       - name: Setup Node.js (for linting)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: 'pnpm'
@@ -55,7 +55,7 @@ jobs:
         uses: pnpm/action-setup@v4
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           # Use version from the matrix
           node-version: ${{ matrix.node-version }}
